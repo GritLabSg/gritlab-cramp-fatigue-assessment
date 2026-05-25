@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GritLab Cramp & Fatigue Assessment</title>
+
+  <!--
+    ================================================================
+    GRITLAB BOTTLENECK ASSESSMENT — NON-CODER EDITING GUIDE
+    ================================================================
+
+    This file is a SINGLE-FILE WEBSITE.
+    That means the whole assessment lives inside this one file:
+
+    1) HTML  = the words, questions, buttons, and page sections
+    2) CSS   = the colors, spacing, fonts, card design, and layout
+    3) JS    = the moving parts: next/back buttons, scoring, result page, and Google Sheets submission
+
+    These grey/green-looking comment blocks do NOT appear on the website.
+    They are notes for the person editing the code.
+
+    ----------------------------------------------------------------
+    SIMPLE RULE FOR EDITING
+    ----------------------------------------------------------------
+
+    SAFE / LOW-RISK EDITS:
+    - Change visible wording between tags, e.g. <h2>Change this text</h2>
+    - Change button wording, e.g. "Start Assessment →"
+    - Change placeholder examples, e.g. placeholder="e.g. 70.3"
+    - Change colors in the CSS variables below
+    - Change layout spacing in CSS if you are comfortable
+
+    MEDIUM-RISK EDITS:
+    - Add a new answer option
+    - Remove an answer option
+    - Change dropdown options
+    - Change the result-page wording
+
+    HIGH-RISK EDITS:
+    - Rename id="..." values
+    - Rename data-name="..." values
+    - Rename data-value="..." values that are used for scoring
+    - Change saveFields(), calculateScores(), buildResultObject(), or saveLead()
+    - Change the submitted JSON structure
+
+    ----------------------------------------------------------------
+    CRITICAL GOOGLE SHEETS RULE
+    ----------------------------------------------------------------
+
+    The form reaches Google Sheets through this chain:
+
+    User answers the form
+      → saveFields() collects answers
+      → calculateScores() creates bottleneck scores
+      → buildResultObject() creates the final data package
+      → saveLead() sends that package to Google Apps Script
+      → Apps Script doPost() writes it into Google Sheets
+
+    If you change the data structure, you MUST also update Apps Script.
+    Otherwise the website may still show the result page, but Google Sheets may not receive the row properly.
+
+    ----------------------------------------------------------------
+    HOW TO SPOT IMPORTANT CODE
+    ----------------------------------------------------------------
+
+    id="leadEmail"
+      = a unique name JavaScript uses to find that field. Do not rename casually.
+
+    data-name="fluid"
+      = tells JavaScript which answer category this button group belongs to.
+
+    data-value="30-60"
+      = the hidden answer value used for scoring. The visible label can say "30–60 g/hr",
+        but the scoring logic reads the data-value.
+
+    class="screen"
+      = one assessment page. Each screen is shown one at a time.
+
+    class="pill"
+      = a clickable answer button.
+
+    ----------------------------------------------------------------
+    EDITING WORKFLOW FOR NON-CODERS
+    ----------------------------------------------------------------
+
+    1) Make one small change.
+    2) Save the file.
+    3) Open the HTML file in Chrome.
+    4) Complete a test submission.
+    5) Check that the result page still appears.
+    6) Check that Google Sheets gets a new row.
+
+    Do not make 20 changes at once unless you are ready to debug.
+  -->
+  <style>
+    /*
+      ================================================================
+      CSS SECTION — VISUAL DESIGN ONLY
+      ================================================================
+      This section controls how the website LOOKS.
+      It does not decide the score and does not send data to Google Sheets.
+
+      Non-coder guide:
+      - Color changes: edit the variables under :root.
+      - Spacing changes: look for padding, margin, gap.
+      - Font size changes: look for font-size.
+      - Rounded corners: look for border-radius.
+
+      If you only edit CSS, you usually do NOT need to change Apps Script.
+    */
+    /*
+      EASY BRAND SETTINGS
+      Change these values if you want to adjust the global brand look.
+      Example: change --red to a different hex code to update most red accents.
+    */
+    :root{
+      --red:#C1121F;
+      --red-dark:#9e0e18;
+      --bg:#F8F8F8;
+      --ink:#17191f;
+      --muted:#6b7280;
+      --line:#e4e4e7;
+      --soft:#ffffff;
+      --green:#188038;
+      --orange:#f59e0b;
+      --grey-star:#d7d7d9;
+      --shadow:0 14px 34px rgba(15,23,42,.08);
+      --radius:18px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 8% 8%, rgba(193,18,31,.08), transparent 25%),
+        linear-gradient(180deg,#fff 0%,var(--bg) 45%,#fff 100%);
+      color:var(--ink);
+      min-height:100vh;
+    }
+    .page{
+      max-width:1180px;
+      margin:0 auto;
+      padding:24px 20px 40px;
+      position:relative;
+      overflow:hidden;
+    }
+    .page::before{
+      content:"";
+      position:absolute;
+      inset:70px -80px auto auto;
+      width:420px;height:250px;
+      background:repeating-linear-gradient(165deg, rgba(23,25,31,.035) 0 1px, transparent 1px 12px);
+      transform:rotate(-6deg);
+      pointer-events:none;
+    }
+    header{
+      display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px;
+      position:relative;z-index:1;
+    }
+    .logo{
+      line-height:.95;
+      letter-spacing:.08em;
+      font-weight:900;
+      font-size:30px;
+    }
+    .logo .red{color:var(--red)}
+    .tag{font-size:11px;letter-spacing:.28em;margin-top:8px;color:#262b35;font-weight:700}
+    .top-meta{text-align:right;color:var(--muted);font-size:13px;line-height:1.45}
+    .hero{text-align:center;margin:18px auto 26px;max-width:900px;position:relative;z-index:1}
+    h1{font-size:clamp(27px,4.8vw,50px);line-height:1.02;margin:0 0 14px;font-weight:900;letter-spacing:-.04em}
+    .subtitle{font-size:19px;color:#374151;font-style:italic;margin:0}
+    .red-line{width:62px;height:3px;background:var(--red);margin:14px auto 0;border-radius:999px}
+
+    .shell{
+      background:rgba(255,255,255,.78);
+      backdrop-filter: blur(10px);
+      border:1px solid rgba(228,228,231,.9);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      position:relative;z-index:1;
+    }
+    .assessment-head{
+      display:flex;justify-content:space-between;gap:20px;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line);
+      background:linear-gradient(90deg,#fff,rgba(248,248,248,.84));
+    }
+    .step-label{font-weight:800;color:var(--ink)}
+    .progress-wrap{flex:1;max-width:560px}
+    .progress-text{font-size:12px;color:var(--muted);margin-bottom:8px;text-align:center;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+    .progress-bar{height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--red),#e11d2e);width:0%;transition:.25s ease}
+
+    .screen{display:none;padding:30px;min-height:560px}
+    .screen.active{display:block;animation:fade .22s ease}
+    @keyframes fade{from{opacity:.6;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+    .screen-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+    .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:0 8px 22px rgba(15,23,42,.05)}
+    .card h2{font-size:30px;margin:0 0 8px;letter-spacing:-.02em;line-height:1.1}
+    .card h3{font-size:20px;margin:0 0 12px;letter-spacing:-.01em}
+    .hint{color:var(--muted);font-size:14px;line-height:1.5;margin:0 0 18px}
+    .mini-label{font-size:12px;text-transform:uppercase;letter-spacing:.11em;color:var(--red);font-weight:900;margin-bottom:10px}
+    .field{margin:16px 0}
+    label{display:block;font-size:14px;font-weight:800;margin-bottom:8px;color:#262b35}
+    .required::after{content:" *";color:var(--red);font-size:12px;font-weight:900}
+    input,select,textarea{
+      width:100%;border:1px solid #d7d7dc;border-radius:12px;padding:13px 13px;font-size:15px;background:#fff;color:var(--ink);outline:none;
+    }
+    input:focus,select:focus,textarea:focus{border-color:var(--red);box-shadow:0 0 0 4px rgba(193,18,31,.08)}
+    .inline-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .choice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .choice-grid.two{grid-template-columns:repeat(2,1fr)}
+    .choice-grid.four{grid-template-columns:repeat(4,1fr)}
+    .pill{
+      border:1px solid #d7d7dc;background:#fff;border-radius:14px;padding:14px 10px;cursor:pointer;text-align:center;font-weight:800;color:#2b303a;transition:.18s ease;min-height:52px;display:flex;align-items:center;justify-content:center;gap:8px;
+    }
+    .pill:hover{border-color:var(--red);transform:translateY(-1px)}
+    .pill.active{border-color:var(--red);background:rgba(193,18,31,.065);color:var(--red);box-shadow:inset 0 0 0 1px rgba(193,18,31,.08)}
+    .checks{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .check-row{display:flex;gap:10px;align-items:center;border:1px solid #d7d7dc;border-radius:14px;padding:12px;background:#fff;cursor:pointer;font-weight:700;color:#2b303a}
+    .check-row input{width:auto;accent-color:var(--red)}
+    .check-row:has(input:checked){border-color:var(--red);background:rgba(193,18,31,.055)}
+    .nav{display:flex;justify-content:space-between;gap:12px;padding:20px 30px;border-top:1px solid var(--line);background:#fff}
+    button,.btn{
+      border:0;border-radius:13px;padding:14px 22px;font-size:15px;font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.18s ease;
+    }
+    .btn-primary{background:var(--red);color:#fff;box-shadow:0 10px 22px rgba(193,18,31,.25)}
+    .btn-primary:hover{background:var(--red-dark);transform:translateY(-1px)}
+    .btn-ghost{background:#fff;color:#222;border:1px solid #d7d7dc}
+    .btn-ghost:hover{border-color:var(--red);color:var(--red)}
+    .btn-small{padding:10px 14px;font-size:13px;border-radius:11px}
+
+    .welcome-card{max-width:720px;margin:0 auto;text-align:center;padding:42px 28px}
+    .icon-bullets{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0}
+    .icon-bullets div{border:1px solid var(--line);border-radius:16px;padding:18px;background:#fff;font-weight:800}
+    .icon{font-size:52px;color:var(--red);display:block;margin-bottom:8px}
+    .step-kicker{display:block;color:var(--red);font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+
+    .conditional{display:none}.conditional.show{display:block}
+    .error{display:none;color:var(--red);font-weight:800;font-size:14px;margin-top:10px}.error.show{display:block}
+
+    /*
+      RESULTS PAGE STYLING
+      Controls the final result screen: primary bottleneck card, star ratings, contributing factors, CTA, and footer.
+      These styles do not control scoring or Google Sheets submission.
+    */
+    .results-page{padding:26px;background:#fff}
+    .result-title{text-align:center;margin:0 0 22px}
+    .result-title h2{font-size:clamp(30px,5vw,54px);line-height:1.05;margin:0;letter-spacing:-.04em}
+    .result-title p{color:#374151;font-style:italic;margin:10px 0 0}
+    .primary-card{display:grid;grid-template-columns:230px 1fr 250px;gap:24px;align-items:center;border:1px solid var(--line);border-radius:20px;padding:26px;background:linear-gradient(90deg,#fff,#fff,#fafafa);box-shadow:0 10px 28px rgba(15,23,42,.06);margin-bottom:24px}
+    .result-badge{width:210px;min-height:250px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,#fff,#f4f5f7);display:grid;place-items:center;align-content:center;gap:18px;margin:auto;position:relative;box-shadow:0 10px 24px rgba(15,23,42,.06);overflow:hidden}
+    .result-badge::before{content:"";position:absolute;inset:0 0 auto 0;height:7px;background:var(--red)}
+    .result-badge-icon{width:126px;height:126px;border-radius:50%;background:#fff;border:1px solid #eceff3;display:grid;place-items:center;font-size:56px;box-shadow:inset 0 0 0 8px #fafafa}
+    .result-badge-label{text-align:center;line-height:1.15}
+    .result-badge-label span{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--red);font-weight:900;margin-bottom:6px}
+    .result-badge-label b{font-size:24px;color:#111827}
+    .primary-copy.no-title h3{display:none}
+    .primary-copy .label{font-size:12px;text-transform:uppercase;letter-spacing:.17em;color:var(--red);font-weight:900;margin-bottom:8px}
+    .primary-copy h3{font-size:42px;line-height:1.03;color:var(--red);margin:0 0 10px;letter-spacing:-.03em}
+    .primary-copy p{font-size:17px;line-height:1.45;margin:0;color:#1f2937;font-weight:650}
+    .why-line{display:flex;gap:12px;align-items:flex-start;margin-top:18px;border-top:1px solid var(--line);padding-top:18px;color:#374151}
+    .target{font-size:28px;color:var(--red)}
+    .impact-box{border-left:1px solid var(--line);padding-left:24px}
+    .impact-box h4{margin:0 0 12px;font-size:16px;color:#374151;font-weight:800}
+    .severity{display:grid;gap:10px}
+    .severity-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .severity-label{font-size:18px;font-weight:900;color:#111827}
+    .severity-score{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#6b7280;font-weight:800}
+    .severity-track{position:relative;height:12px;border-radius:999px;background:linear-gradient(90deg,#16a34a 0%,#facc15 38%,#f97316 68%,#dc2626 100%);box-shadow:inset 0 0 0 1px rgba(17,24,39,.1)}
+    .severity-marker{position:absolute;top:50%;width:18px;height:18px;border-radius:999px;background:#111827;border:3px solid #fff;box-shadow:0 4px 12px rgba(17,24,39,.25);transform:translate(-50%,-50%)}
+    .dots{display:flex;gap:10px;margin:12px 0 8px}.dot{width:12px;height:12px;border-radius:999px;background:#d7d7dc}.dot.on{background:var(--red)}
+    .impact-box strong{display:block;margin-top:8px}
+    .factor-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin:12px 0 30px}
+    .factor-card{border:1px solid var(--line);border-radius:16px;background:#fff;padding:20px;min-height:190px;box-shadow:0 8px 20px rgba(15,23,42,.045)}
+    .factor-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}.factor-icon{font-size:30px;color:var(--red);width:38px;text-align:center}.factor-card h4{margin:0;font-size:20px}.factor-card .severity{width:100%;max-width:none;margin:0 0 16px}.factor-card p{color:#4b5563;line-height:1.55;margin:0;border-top:1px solid var(--line);padding-top:14px}
+    .secondary-note{font-size:14px;color:#6b7280;margin:0 0 24px;border-top:1px solid var(--line);padding-top:12px}
+    .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:22px}
+    .result-copy{border:1px solid var(--line);border-radius:18px;background:#fff;padding:24px;box-shadow:0 8px 20px rgba(15,23,42,.035)}
+    .result-copy h3{font-size:22px;margin:0 0 10px}.result-copy p{line-height:1.65;color:#374151;margin:0}
+    .subsection-label{font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:#6b7280;font-weight:900;margin:22px 0 10px}
+    .benefits{display:grid;grid-template-columns:1fr;gap:10px;margin-top:0}.benefit{font-weight:850;border:1px solid var(--line);border-radius:12px;background:#fafafa;padding:12px 14px;line-height:1.35}.benefit span{display:block;color:var(--muted);font-weight:600;font-size:13px;margin-top:4px}
+    .steps-list{display:grid;gap:0}.step-item{display:grid;grid-template-columns:48px 1fr;gap:14px;align-items:start;padding:16px 0;border-bottom:1px solid var(--line)}.step-item:first-child{padding-top:4px}.step-item:last-child{border-bottom:0;padding-bottom:0}.step-icon{width:46px;height:46px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;font-size:22px;color:var(--red);background:#fff}.step-item b{display:block;margin-bottom:6px}.step-item p{margin:0;color:#4b5563;line-height:1.55}
+    .cta-bar{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:18px;padding:24px 26px;margin-top:36px;box-shadow:0 12px 28px rgba(15,23,42,.06)}.cta-bar h3{margin:0;font-size:26px}.cta-bar p{margin:6px 0 0;color:#4b5563;max-width:650px;line-height:1.45}
+    .disclaimer{font-size:13px;color:#6b7280;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fafafa;margin-top:18px}
+    .footer-band{display:grid;grid-template-columns:280px 1fr 360px;margin-top:20px;overflow:hidden;border-radius:0 0 20px 20px;background:#111827;color:#fff}.footer-red{background:var(--red);padding:24px 28px;font-weight:900;letter-spacing:.16em;line-height:1.45}.sports{display:flex;align-items:center;justify-content:center;gap:28px;background:#fff;color:#111827;font-size:12px;font-weight:800}.sports div{text-align:center}.sports span{display:block;font-size:26px;margin-bottom:4px}.footer-dark{display:grid;place-items:center;font-weight:900;letter-spacing:.18em;background:repeating-linear-gradient(160deg, rgba(255,255,255,.06) 0 1px, transparent 1px 12px),#111827}
+    .tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+
+    @media(max-width:900px){
+      .assessment-head{display:block}.progress-wrap{max-width:100%;margin-top:12px}.screen{padding:20px}.screen-grid,.summary-grid,.primary-card{grid-template-columns:1fr}.impact-box{border-left:0;border-top:1px solid var(--line);padding-left:0;padding-top:18px}.factor-grid{grid-template-columns:1fr}.checks{grid-template-columns:1fr}.choice-grid,.choice-grid.two,.choice-grid.four{grid-template-columns:1fr 1fr}.icon-bullets,.benefits{grid-template-columns:1fr}.footer-band{grid-template-columns:1fr}.sports{padding:18px;flex-wrap:wrap}.cta-bar{grid-template-columns:1fr}h1{font-size:30px}.subtitle{font-size:17px}.primary-copy h3{font-size:34px}
+      .results-page,.primary-copy,.impact-box,.factor-card,.result-copy,.cta-bar{text-align:left}
+      .result-title,.result-badge,.result-badge-label{text-align:center}
+      .result-badge{margin:0 auto}
+      .why-line{display:block}
+      .why-line .target{margin:0 0 10px}
+      .severity,.factor-card .severity{width:100%}
+      .cta-bar .btn{width:100%;justify-content:center;text-align:center}
+      .footer-band{text-align:center}
+    }
+    @media(max-width:540px){.choice-grid,.choice-grid.two,.choice-grid.four,.inline-2{grid-template-columns:1fr}.nav{padding:16px 20px}.logo{font-size:24px}.top-meta{display:none}}
+  </style>
+</head>
+<body>
+
+  <!--
+    ================================================================
+    WEBSITE BODY STARTS HERE
+    ================================================================
+    Everything below this point is what the visitor can see or interact with.
+    The comments still stay invisible on the live website.
+  -->
+
+  <div class="page">
+
+    <!--
+      TOP BRAND HEADER
+      Safe to edit: logo text and the small text on the right.
+      Avoid changing class names unless you also update the CSS.
+    -->
+    <header>
+      <div><div class="logo"><span class="red">GRIT</span>LAB</div><div class="tag">ENDURANCE SCIENCE</div></div>
+    </header>
+
+
+
+    <!--
+      HERO / MAIN TITLE AREA
+      This is the first big title users see before the assessment box.
+      Safe to edit: the headline and subtitle text.
+    -->
+    <section class="hero">
+      <h1>GritLab Cramp & Fatigue Assessment</h1>
+      <p class="subtitle">Find out whether your cramps, early fatigue, stalled progress, or pacing struggles in long hot races are linked to training zones, hydration, sodium or heat.</p>
+      <div class="red-line"></div>
+    </section>
+
+
+
+    <!--
+      ASSESSMENT APP CONTAINER
+      This wraps all the assessment pages.
+      The "id=app" is not currently used heavily, but keep it for clarity.
+    -->
+    <main class="shell" id="app">
+
+      <!--
+        PROGRESS HEADER
+        This area shows the current step name, progress bar, and profile summary.
+        JavaScript updates this automatically inside updateUI().
+      -->
+      <div class="assessment-head">
+        <div class="step-label" id="stepTitle">Welcome / Intro</div>
+        <div class="progress-wrap">
+          <div class="progress-text" id="progressText">Step 1 of 8</div>
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
+        <div class="step-label" id="profileMeta"></div>
+      </div>
+
+      <!--
+        ================================================================
+        SCREEN 1: WELCOME / INTRO
+        ================================================================
+        Purpose: convince the user to start.
+        Data collected here: none.
+        Safe to edit: headline, subtitle, icon bullet text, disclaimer, button text.
+        Do not remove onclick="nextStep()" from the button, or the assessment cannot start.
+      -->
+      <section class="screen active" data-title="Welcome / Intro">
+        <div class="welcome-card card">
+          <h2>Unlock Your Best Performance</h2>
+          <div class="icon-bullets">
+            <div><span class="icon">🎯</span><span class="step-kicker">Step 1</span>Science-backed questions</div>
+            <div><span class="icon">📊</span><span class="step-kicker">Step 2</span>Personalized insights</div>
+            <div><span class="icon">↗</span><span class="step-kicker">Step 3</span>Actionable next steps</div>
+          </div>
+          <p class="hint">This is not a medical diagnosis. It is a screening tool to make the most of your training and races.</p>
+          <button class="btn-primary" onclick="nextStep()">Start Assessment →</button>
+        </div>
+      </section>
+
+      <!--
+        ================================================================
+        SCREEN 2: SYMPTOMS / PAIN POINTS
+        ================================================================
+        Purpose: identify the user's main problems.
+        Data collected: checked symptom boxes.
+        Scoring importance: HIGH. These answers strongly affect the final bottleneck.
+
+        Editing notes:
+        - You can change the visible symptom wording.
+        - The value="..." is what calculateScores() reads.
+        - If you add a new symptom value, also add scoring rules inside calculateScores().
+      -->
+      <section class="screen" data-title="Symptoms">
+        <div class="card">
+          <div class="mini-label">Step 2</div>
+          <h2 class="required">What are you struggling with?</h2>
+          <div class="checks">
+            <label class="check-row"><input type="checkbox" name="symptoms" value="cramping"> ⚡ Cramping</label>
+            <label class="check-row"><input type="checkbox" name="symptoms" value="fading"> 🔋 Fatiguing quickly</label>
+            <label class="check-row"><input type="checkbox" name="symptoms" value="plateau"> 📉 Fitness plateau</label>
+            <label class="check-row"><input type="checkbox" name="symptoms" value="pacing"> ⏱️ Pacing struggles</label>
+            <label class="check-row"><input type="checkbox" name="symptoms" value="heat"> 🌡️ Overheating in hot conditions</label>
+          </div>
+        </div>
+      </section>
+
+      <!--
+        ================================================================
+        SCREEN 3: PRIMARY SPORT + EVENT TYPE
+        ================================================================
+        Purpose: collect basic context about the athlete.
+        Data collected: sport and event type.
+
+        Non-coder editing notes:
+        - Visible text can be changed safely.
+        - For clickable buttons, the visible text and data-value are different.
+        - Example: data-value="Cycling" is what gets saved and scored.
+        - If you rename an input id, also update saveFields().
+      -->
+      <section class="screen" data-title="Sport & Event">
+        <div class="card">
+          <div class="mini-label">Step 3</div>
+          <h2>Tell us your sport and event.</h2>
+          <div class="field"><label class="required">Primary sport</label><div class="choice-grid four" data-name="sport"><div class="pill" data-value="Cycling">🚴 Cycling</div><div class="pill" data-value="Running">🏃 Running</div><div class="pill" data-value="Triathlon">🏊‍♂️ Triathlon</div><div class="pill" data-value="Duathlon">🏃🚴 Duathlon</div></div></div>
+          <div class="field"><label class="required">Event type</label><select id="eventType" disabled><option value="" disabled selected hidden>Select one</option></select></div>
+        </div>
+      </section>
+
+      <!--
+        ================================================================
+        SCREEN 4: TRAINING CONTEXT
+        ================================================================
+        Purpose: collect basic training load and structure context.
+      -->
+      <section class="screen" data-title="Training Context">
+        <div class="card">
+          <div class="mini-label">Step 4</div>
+          <h2>Tell us about your training week.</h2>
+          <div class="field"><label class="required">How many hours do you train per week?</label><select id="trainingHours"><option value="" disabled selected hidden>Select one</option><option value="1-3">1–3 hours</option><option value="4-6">4–6 hours</option><option value="7-9">7–9 hours</option><option value="10-12">10–12 hours</option><option value="13+">13+ hours</option></select></div>
+          <div class="field"><label class="required">How many High Intensity Intervals do you perform per week?</label><select id="hiitSessions"><option value="" disabled selected hidden>Select one</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4+">4+</option></select></div>
+          <div class="field"><label class="required">Have you followed any structured program for the past 3 months?</label><select id="structuredProgram"><option value="" disabled selected hidden>Select one</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+        </div>
+      </section>
+
+      <!--
+        ================================================================
+        SCREEN 5: TRAINING ZONES & PACING
+        ================================================================
+        Purpose: understand zone accuracy and pacing execution.
+        Affects: Training Zones and Pacing.
+
+        Editing notes:
+        - Dropdown option text is what users see.
+        - option value="..." is what scoring reads.
+        - If you change option values, update calculateScores().
+      -->
+      <section class="screen" data-title="Training Zones & Pacing">
+        <div class="screen-grid">
+          <div class="card">
+            <div class="mini-label">Step 5</div>
+            <h3>Intensity Zones</h3>
+            <div class="field"><label class="required">How were your intensity zones set?</label><select id="zones"><option value="" disabled selected hidden>Select one</option><option value="lab">Lab test</option><option value="twenty_min">20-minute test</option><option value="hr_only">Heart Rate only</option><option value="zwift_ramp">Zwift Ramp Test</option><option value="rpe_only">I go by feel only</option><option value="garmin_ftp">Garmin FTP Estimate</option><option value="no_zones">I train without zones</option></select></div>
+            <div class="field"><label class="required">When were they last tested or updated?</label><select id="zonesLastTested"><option value="" disabled selected hidden>Select one</option><option value="lt3">Less than 3 months ago</option><option value="lt6">Less than 6 months ago</option><option value="6-12">6–12 months ago</option><option value="1-2">1–2 years ago</option><option value="never">Never / not sure</option></select></div>
+          </div>
+          <div class="card">
+            <h3>Pacing</h3>
+            <div class="field"><label class="required">Do you fatigue quickly even when keeping to a steady effort?</label><select id="controlledFade"><option value="" disabled selected hidden>Select one</option><option value="no">No</option><option value="sometimes">Sometimes</option><option value="often">Often</option><option value="almost_always">Almost always</option><option value="unsure">Not sure</option></select></div>
+            <div class="field conditional" id="controlledFadeFollowup"><label class="required">When does this usually happen?</label><div class="checks"><label class="check-row"><input type="checkbox" name="controlledFadeContext" value="heat"> During hot weather</label><label class="check-row"><input type="checkbox" name="controlledFadeContext" value="group"> When trying to keep up with the group</label><label class="check-row"><input type="checkbox" name="controlledFadeContext" value="climbing"> During rolling terrain / involves a lot of climbing</label></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!--
+        ================================================================
+        SCREEN 6: HYDRATION, SODIUM & HEAT
+        ================================================================
+        Purpose: understand fluid, sodium, and heat strategy.
+        Affects: Hydration, Sodium Intake, and Heat Tolerance.
+
+        Editing notes:
+        - Fluid buttons use data-value for scoring.
+        - Sodium amount only appears if user selects Yes or Sometimes.
+        - If you change ranges, update calculateScores() so the score still makes sense.
+      -->
+      <section class="screen" data-title="Hydration, Sodium & Heat">
+        <div class="screen-grid">
+          <div class="card">
+            <div class="mini-label">Step 6</div>
+            <h2>Let’s talk hydration, sodium, and heat.</h2>
+            <div class="field"><label class="required">Do you cramp more in the heat or during race?</label><select id="crampHeatLong"><option value="" disabled selected hidden>Select one</option><option value="no">No</option><option value="yes">Yes</option></select></div>
+            <div class="field"><label class="required">Does your pace or power drop noticeably in hot/humid conditions?</label><select id="heatDrop"><option value="" disabled selected hidden>Select one</option><option value="yes">Yes</option><option value="sometimes">Sometimes</option><option value="no">No</option><option value="unsure">Not sure</option></select></div>
+            <div class="field"><label class="required">How much fluid do you drink per hour?</label><select id="fluid"><option value="" disabled selected hidden>Select one</option><option value="0-250">0–250 ml/hr</option><option value="250-500">250–500 ml/hr</option><option value="500-750">500–750 ml/hr</option><option value="750-1000">750–1000 ml/hr</option><option value="1000+">1000+ ml/hr</option></select></div>
+          </div>
+          <div class="card">
+            <h3>Sodium Intake</h3>
+            <div class="field"><label class="required">How much is your sodium intake per hour?</label><select id="sodiumTrack"><option value="" disabled selected hidden>Select one</option><option value="250">250 mg/hr</option><option value="500">500 mg/hr</option><option value="750">750 mg/hr</option><option value="1000">1000 mg/hr</option><option value="1250">1250+ mg/hr</option><option value="unsure">Unsure</option><option value="none">I do not consume sodium during exercise</option></select></div>
+            <div class="field"><label class="required">Do you have salt stains on your clothing / skin after workouts?</label><select id="saltStains"><option value="" disabled selected hidden>Select one</option><option value="no">No</option><option value="yes">Yes</option><option value="sometimes">Sometimes</option></select></div>
+          </div>
+        </div>
+      </section>
+
+      <!--
+        ================================================================
+        SCREEN 7: LEAD CAPTURE
+        ================================================================
+        Purpose: collect contact details before showing the result.
+        Data collected: name, email, intent, notes.
+
+        IMPORTANT:
+        Moving past this screen triggers saveLead().
+        That means this is where the local backup and Google Sheets submission happen.
+
+        Editing notes:
+        - Name and email are required in validateStep().
+        - If you remove email or name, update validateStep() and Apps Script.
+        - If you add a new sales field, add it to saveFields(), buildResultObject(), CSV export, and Apps Script.
+      -->
+      <section class="screen" data-title="Lead Capture">
+        <div class="screen-grid">
+          <div class="card">
+            <div class="mini-label">Step 7</div>
+            <h2>Enter your details to unlock your result and receive follow-up guidance from GritLab.</h2>
+            <div class="field"><label class="required">Name</label><input id="leadName" placeholder="Full name" /></div>
+            <div class="field"><label class="required">Email</label><input id="leadEmail" type="email" placeholder="name@email.com" /></div>
+          </div>
+          <div class="card">
+            <h3>Your next step</h3>
+            <div class="field"><label class="required">What would help you turn this result into clearer next steps?</label><select id="intent"><option value="" disabled selected hidden>Select</option><option value="race_assistance">📅 I have a race coming up and want a clear plan</option><option value="problem_soon">🎯 I want to resolve this problem soon</option><option value="understand_result">🧠 I want to understand what this result means first</option><option value="curious">👀 I’m just exploring for now</option></select></div>
+            <div class="field"><label>Notes / context</label><textarea id="notes" rows="4" placeholder="Race coming up, recurring cramp issue, plateau, etc."></textarea></div>
+          </div>
+        </div>
+      </section>
+
+      <!--
+        ================================================================
+        SCREEN 8: RESULTS PREVIEW
+        ================================================================
+        Purpose: display the final bottleneck result.
+
+        Important:
+        The result page content is NOT written directly here.
+        JavaScript creates it inside renderResults().
+        So if you want to edit result-page wording/layout, scroll to renderResults().
+      -->
+      <section class="screen" data-title="Results Preview">
+        <div class="results-page" id="resultsRoot"></div>
+      </section>
+
+
+      <!--
+        BOTTOM NAVIGATION BUTTONS
+        Back and Next buttons are reused across all screens.
+        Do not remove onclick="prevStep()" or onclick="nextStep()".
+      -->
+      <div class="nav" id="nav">
+        <button class="btn-ghost" id="backBtn" onclick="prevStep()">← Back</button>
+        <div class="error" id="errorMsg">Please complete the required fields.</div>
+        <button class="btn-primary" id="nextBtn" onclick="nextStep()">Next →</button>
+      </div>
+    </main>
+  </div>
+
+
+
+<script>
+/*
+  ================================================================
+  JAVASCRIPT SECTION — IMPORTANT DATA PIPELINE
+  ================================================================
+
+  Think of this section as the "engine" behind the assessment.
+
+  The flow is:
+
+  1) User clicks / types answers on the form
+  2) saveFields() collects those answers into state.data
+  3) calculateScores() turns answers into bottleneck scores
+  4) renderResults() builds the result page the user sees
+  5) buildResultObject() creates the data package for storage
+  6) saveLead() saves locally and sends the package to Google Sheets
+
+  If you add/change a question, check these places:
+
+  [A] HTML field/button/select
+      This is the visible question on the page.
+
+  [B] saveFields()
+      This collects the answer. If a field is not here, it may not be saved.
+
+  [C] validateStep()
+      This decides whether the user is allowed to continue.
+      Add required-field rules here only if necessary.
+
+  [D] calculateScores()
+      This decides how answers affect bottleneck scores.
+      If the new question affects the result, add scoring logic here.
+
+  [E] buildResultObject()
+      This controls the final JSON package sent to Apps Script.
+      If you change the data structure, update this.
+
+  [F] downloadCSV()
+      This controls the local CSV export button.
+
+  [G] Google Apps Script doPost()
+      This controls what columns appear in Google Sheets.
+      If the data structure changes, update Apps Script and redeploy /exec.
+
+  Golden rule:
+  The website can look correct while Google Sheets is broken.
+  Always test the full submission after changing data fields.
+*/
+
+// === GOOGLE SHEETS CONFIG ===
+// 1) This must be the deployed Google Apps Script Web App URL ending in /exec.
+// 2) If this URL changes, update it here and test a full form submission.
+// 3) Do not use the /dev URL for public or hosted versions.
+// 4) Keep this blank only if you want local-browser storage without Google Sheets.
+const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyaWSJznf1nwdGlJj96QdYwaXoF7MGg7DABZ0gzK9aBfdBEhOB5DSmB7rg4SzwkYOSzCw/exec';
+
+// Toggle: true when a valid Apps Script URL is present. Used by saveLead() before sending data to Google Sheets.
+const SEND_TO_GOOGLE_SHEETS = GOOGLE_SHEETS_WEB_APP_URL.trim().startsWith('https://script.google.com/');
+
+// Global app state. current = current screen index. data = all collected user answers.
+const state = { current:0, data:{} };
+// All assessment screens. The app moves through these one by one using nextStep() and prevStep().
+const screens = [...document.querySelectorAll('.screen')];
+const total = screens.length;
+const eventTypeOptions = {
+  Running:['Marathon','5K / 10K run','Half marathon','I Do Not Have An Event','Ultra / trail run'],
+  Cycling:['Time trial','I Do Not Have An Event','Road race / criterium','Audax / long-distance cycling'],
+  Triathlon:['I Do Not Have An Event','Sprint triathlon','Olympic triathlon','70.3 / middle-distance triathlon','Ironman / full-distance triathlon'],
+  Duathlon:['Marathon','Time trial','5K / 10K run','Half marathon','I Do Not Have An Event','Ultra / trail run','Road race / criterium','Audax / long-distance cycling']
+};
+// Bottleneck domain labels, icons, and short explanations used on the result page.
+// If you add/remove a domain, also update calculateScores(), Apps Script, and any result rendering logic.
+const domainMeta = {
+  zones:{label:'Training Zones', icon:'🎯', summary:'Your current zones may not reflect your present fitness, making training effort less precise.'},
+  hydration:{label:'Hydration', icon:'💧', summary:'Your fluid intake may not be enough for the duration, intensity, or heat of your sessions.'},
+  sodium:{label:'Sodium Intake', icon:'🧂', summary:'Your sodium intake may not be matching what you lose through sweat, especially during long or hot sessions.'},
+  pacing:{label:'Pacing', icon:'⏱️', summary:'Your pacing pattern may be pushing too hard early and causing a drop-off later.'},
+  heat:{label:'Heat Tolerance', icon:'🌡️', summary:'Your current heat strategy may not be sufficient for hot, humid training or race conditions.'}
+};
+
+// ----------------------------------------------------------------
+// selectPill(el)
+// ----------------------------------------------------------------
+// Plain-English version:
+// This runs when someone clicks a pill-style answer button.
+// Example: Cycling / Running / Triathlon, or 500–750 ml/hr fluid.
+//
+// What it does:
+// 1) Removes the red "selected" look from other buttons in the same group.
+// 2) Adds the red "selected" look to the clicked button.
+// 3) Saves the hidden data-value into state.data.
+// 4) Shows extra questions when needed, e.g. sodium amount.
+//
+// Non-coder warning:
+// If you change data-name or data-value in the HTML, this function may save different data.
+// ----------------------------------------------------------------
+function selectPill(el){
+  const group = el.parentElement;
+  group.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  const name = group.dataset.name;
+  state.data[name] = el.dataset.value;
+  if(name === 'sport') updateEventTypeOptions(el.dataset.value);
+}
+document.querySelectorAll('.choice-grid .pill').forEach(p=>p.addEventListener('click',()=>selectPill(p)));
+document.getElementById('controlledFade').addEventListener('change', updateControlledFadeFollowup);
+
+function updateEventTypeOptions(sport){
+  const select = document.getElementById('eventType');
+  const options = eventTypeOptions[sport] || [];
+  const current = select.value;
+  select.disabled = options.length === 0;
+  select.innerHTML = '<option value="" disabled selected hidden>Select one</option>' + options.map(option => `<option>${option}</option>`).join('');
+  select.value = options.includes(current) ? current : '';
+  state.data.eventType = select.value;
+}
+
+function updateControlledFadeFollowup(){
+  const value = getVal('controlledFade');
+  const shouldShow = ['sometimes','often','almost_always'].includes(value);
+  document.getElementById('controlledFadeFollowup').classList.toggle('show', shouldShow);
+  if(!shouldShow){
+    document.querySelectorAll('input[name="controlledFadeContext"]').forEach(input => input.checked = false);
+    state.data.controlledFadeContext = [];
+  }
+}
+
+// ----------------------------------------------------------------
+// updateUI()
+// ----------------------------------------------------------------
+// Plain-English version:
+// This controls which "page" of the assessment is visible.
+//
+// What it updates:
+// - Current screen shown to the user
+// - Step title at the top
+// - Progress bar
+// - Back button visibility
+// - Next button wording
+// - Result page rendering on the final screen
+//
+// Usually do not edit this unless you are changing the assessment flow.
+// ----------------------------------------------------------------
+function updateUI(){
+  screens.forEach((s,i)=>s.classList.toggle('active',i===state.current));
+  document.querySelector('.hero').style.display = state.current===0 ? 'block':'none';
+  document.getElementById('stepTitle').textContent = screens[state.current].dataset.title;
+  document.getElementById('progressText').textContent = `Step ${state.current+1} of ${total}`;
+  document.getElementById('progressFill').style.width = `${(state.current)/(total-1)*100}%`;
+  document.querySelector('.nav').style.display = state.current===0 ? 'none':'flex';
+  document.getElementById('backBtn').style.visibility = state.current===0 ? 'hidden':'visible';
+  const next = document.getElementById('nextBtn');
+  next.textContent = state.current === total-2 ? 'See Results →' : state.current === total-1 ? 'Restart ↻' : 'Next →';
+  document.getElementById('errorMsg').classList.remove('show');
+  if(state.current===total-1) renderResults();
+}
+// ----------------------------------------------------------------
+// showError(msg)
+// ----------------------------------------------------------------
+// Shows a red warning message when the user missed a required answer.
+// Example: "Enter name and email to generate the result."
+// ----------------------------------------------------------------
+function showError(msg){
+  const e = document.getElementById('errorMsg');
+  e.textContent = msg;
+  e.classList.add('show');
+}
+// getVal() / getNum() / selectedSymptoms()
+// Small helper functions for reading text, numeric values, and checkbox selections from the HTML.
+function getVal(id){
+  return (document.getElementById(id)?.value || '').trim();
+}
+function isValidEmail(email){
+  const input = document.getElementById('leadEmail');
+  return input ? input.checkValidity() && email.includes('.') : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+function getNum(id){
+  const v = parseFloat(getVal(id));
+  return Number.isFinite(v) ? v : null;
+}
+function selectedSymptoms(){
+  return [...document.querySelectorAll('input[name="symptoms"]:checked')].map(x => x.value);
+}
+function selectedControlledFadeContext(){
+  return [...document.querySelectorAll('input[name="controlledFadeContext"]:checked')].map(x => x.value);
+}
+// saveFields()
+// CRITICAL: Collects all user inputs from the HTML and stores them in state.data.
+// If you add a new question or input field, add it here or it will not be saved, scored, exported, or sent to Google Sheets.
+function saveFields(){
+  Object.assign(state.data, {
+    eventType:getVal('eventType'),
+    trainingHours:getVal('trainingHours'), hiitSessions:getVal('hiitSessions'), structuredProgram:getVal('structuredProgram'),
+    zones:getVal('zones'), zonesLastTested:getVal('zonesLastTested'), controlledFade:getVal('controlledFade'), controlledFadeContext:selectedControlledFadeContext(),
+    fluid:getVal('fluid'), sodiumTrack:getVal('sodiumTrack'), saltStains:getVal('saltStains'), crampHeatLong:getVal('crampHeatLong'), heatDrop:getVal('heatDrop'),
+    leadName:getVal('leadName'), leadEmail:getVal('leadEmail'), intent:getVal('intent'), notes:getVal('notes'),
+    symptoms:selectedSymptoms(), createdAt:new Date().toISOString()
+  });
+}
+// validateStep()
+// Controls which fields are required before the user can move to the next screen.
+// Add new required fields here only when necessary; too much validation reduces completion rate.
+function validateStep(){
+  saveFields();
+  if(state.current===1 && !state.data.symptoms.length){showError('Select at least one symptom.'); return false;}
+  if(state.current===2 && (!state.data.sport || !state.data.eventType)){showError('Select a primary sport and event type.'); return false;}
+  if(state.current===3 && (!state.data.trainingHours || !state.data.hiitSessions || !state.data.structuredProgram)){showError('Complete all training week fields.'); return false;}
+  if(state.current===4 && (!state.data.zones || !state.data.zonesLastTested || !state.data.controlledFade)){showError('Complete intensity zones and pacing fields.'); return false;}
+  if(state.current===4 && ['sometimes','often','almost_always'].includes(state.data.controlledFade) && !state.data.controlledFadeContext.length){showError('Select when steady-effort fatigue usually happens.'); return false;}
+  if(state.current===5 && (!state.data.crampHeatLong || !state.data.heatDrop || !state.data.fluid || !state.data.sodiumTrack || !state.data.saltStains)){showError('Complete heat, fluid, sodium, and salt-mark fields.'); return false;}
+  if(state.current===total-2 && (!state.data.leadName || !isValidEmail(state.data.leadEmail) || !state.data.intent)){ showError('Enter your name, a valid email, and how we should guide you.'); return false; }
+  return true;
+}
+// nextStep()
+// Moves forward through the assessment. On the Lead Capture screen, it calls saveLead() before showing results.
+// This is where the HTML → Google Sheets submission is triggered.
+function nextStep(){
+  if(state.current===total-1){restart();return;}
+  if(!validateStep()) return;
+  if(state.current===total-2){saveLead();}
+  state.current = Math.min(total-1, state.current+1);
+  updateUI();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+// prevStep() / restart()
+// Navigation helpers for going backward or restarting the whole assessment.
+function prevStep(){
+  state.current = Math.max(0, state.current - 1);
+  updateUI();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function restart(){
+  location.reload();
+}
+
+// clamp() / penalty()
+// Scoring helpers. Scores are kept within 0–100. penalty() subtracts points from a bottleneck domain.
+function clamp(n){
+  return Math.max(0, Math.min(100, n));
+}
+
+function penalty(scores, key, amount){
+  scores[key] = clamp(scores[key] - amount);
+}
+// calculateScores()
+// CRITICAL: Converts user answers into domain scores. Lower score = bigger bottleneck.
+// Expert-weighted prototype logic, not a validated diagnostic model. Update carefully if you change domains or question values.
+function calculateScores(){
+  saveFields();
+  const s = {zones:100, hydration:100, sodium:100, pacing:100, heat:100};
+  const sy = state.data.symptoms || [];
+  if(sy.includes('cramping')){ penalty(s,'sodium',28); penalty(s,'hydration',15); penalty(s,'heat',10); }
+  if(sy.includes('fading')){ penalty(s,'pacing',20); penalty(s,'zones',8); penalty(s,'hydration',10); }
+  if(sy.includes('plateau')){ penalty(s,'zones',19); penalty(s,'pacing',5); }
+  if(sy.includes('pacing')) penalty(s,'pacing',30);
+  if(sy.includes('heat')){ penalty(s,'heat',30); penalty(s,'hydration',10); penalty(s,'sodium',10); }
+
+  const longDistanceEvents = ['Half marathon','Marathon','Ultra / trail run','Audax / long-distance cycling','70.3 / middle-distance triathlon','Ironman / full-distance triathlon'];
+  const highIntensityEvents = ['5K / 10K run','Road race / criterium','Time trial','Sprint triathlon','Olympic triathlon'];
+  if(longDistanceEvents.includes(state.data.eventType)){ penalty(s,'hydration',6); penalty(s,'sodium',6); penalty(s,'heat',4); }
+  if(highIntensityEvents.includes(state.data.eventType)){ penalty(s,'pacing',6); penalty(s,'zones',5); }
+
+  const zonesPen = {lab:0, twenty_min:6, hr_only:15, zwift_ramp:9, rpe_only:23, garmin_ftp:14, no_zones:30}; penalty(s,'zones',zonesPen[state.data.zones]||0);
+  const zonesAgePen = {lt3:0,lt6:3,'6-12':8,'1-2':15,never:26}; penalty(s,'zones',zonesAgePen[state.data.zonesLastTested]||0);
+  if(state.data.structuredProgram === 'no'){ penalty(s,'zones',9); penalty(s,'pacing',8); }
+  if(state.data.hiitSessions === '4+'){ penalty(s,'pacing',8); penalty(s,'heat',5); penalty(s,'zones',6); }
+  if(state.data.trainingHours === '1-3' && sy.includes('plateau')) penalty(s,'zones',6);
+  if(state.data.structuredProgram === 'no' && sy.includes('plateau')) penalty(s,'zones',8);
+
+  const controlledFadePen = {no:0,sometimes:8,often:16,almost_always:24,unsure:10};
+  const controlledFadeZonesPen = {no:0,sometimes:6,often:12,almost_always:18,unsure:8};
+  penalty(s,'zones',controlledFadeZonesPen[state.data.controlledFade]||0);
+  penalty(s,'hydration',Math.round((controlledFadePen[state.data.controlledFade]||0)*0.6));
+  const controlledFadeContext = state.data.controlledFadeContext || [];
+  if(controlledFadeContext.includes('group')) penalty(s,'pacing',22);
+  if(controlledFadeContext.includes('climbing')){ penalty(s,'pacing',18); penalty(s,'zones',6); }
+  if(controlledFadeContext.includes('heat')){ penalty(s,'heat',20); penalty(s,'hydration',8); }
+
+  const fluidPen = {'0-250':40,'250-500':18,'500-750':4,'750-1000':0,'1000+':0}; penalty(s,'hydration',fluidPen[state.data.fluid]||0);
+  const sodiumPen = {none:34, unsure:18, '250':18, '500':6, '750':0, '1000':0, '1250':0}; penalty(s,'sodium',sodiumPen[state.data.sodiumTrack]||0);
+  const saltPen = {yes:30, sometimes:15, no:0}; penalty(s,'sodium',saltPen[state.data.saltStains]||0);
+  const heatDropPen = {yes:30, sometimes:15, no:0, unsure:6};
+  penalty(s,'heat',heatDropPen[state.data.heatDrop]||0);
+  const heatDropHydrationPen = {yes:8, sometimes:4, no:0, unsure:0};
+  penalty(s,'hydration',heatDropHydrationPen[state.data.heatDrop]||0);
+  const crampHeatPen = {no:0, yes:20};
+  penalty(s,'sodium',crampHeatPen[state.data.crampHeatLong]||0);
+  penalty(s,'heat',Math.round((crampHeatPen[state.data.crampHeatLong]||0)*0.6));
+  penalty(s,'hydration',state.data.crampHeatLong === 'yes' ? 15 : 0);
+
+  Object.keys(s).forEach(k=>s[k]=clamp(Math.round(s[k])));
+  return s;
+}
+
+// Converts the internal score into a simple visual severity: lower score = higher concern.
+function severityMeta(score){
+  if(score < 45) return {label:'Severe', impact:100 - score};
+  if(score < 65) return {label:'High', impact:100 - score};
+  if(score < 82) return {label:'Moderate', impact:100 - score};
+  return {label:'Low', impact:100 - score};
+}
+
+function severityBarHTML(score){
+  const severity = severityMeta(score);
+  const marker = clamp(severity.impact);
+  return `
+    <div class="severity" aria-label="Severity ${severity.label}">
+      <div class="severity-head">
+        <span class="severity-label">${severity.label}</span>
+        <span class="severity-score">Severity</span>
+      </div>
+      <div class="severity-track"><span class="severity-marker" style="left:${marker}%"></span></div>
+    </div>`;
+}
+
+function benefitsFor(key){
+  const benefits = {
+    zones:[
+      ['🧭 Know when to hold back and when to push.',''],
+      ['🎯 Train with clearer purpose, not guesswork.',''],
+      ['💪 Get stronger from the same training effort.','']
+    ],
+    hydration:[
+      ['💧 Last longer, especially in the heat.',''],
+      ['🛡️ Prevent dehydration-related drops in performance.',''],
+      ['🔄 Feel more consistent when the ride or run gets long.','']
+    ],
+    sodium:[
+      ['🧂 Lower your risk of cramping.',''],
+      ['🔥 Race with more confidence in the heat.',''],
+      ['🧠 Reduce the guesswork around salt and cramp prevention.','']
+    ],
+    pacing:[
+      ['🏁 Start controlled, finish stronger.',''],
+      ['⏱️ Know when to hold back and when to push.',''],
+      ['📈 Keep your effort smoother from start to finish.','']
+    ],
+    heat:[
+      ['🌡️ Build a clearer heat strategy before race day.',''],
+      ['🧊 Perform with more control in hot, humid conditions.',''],
+      ['🧳 Prepare smarter for races where heat changes everything.','']
+    ]
+  };
+  return benefits[key] || [
+    ['🎯 Build a clearer direction for your next training cycle.',''],
+    ['🧠 Turn symptoms into measurable, practical next decisions.',''],
+    ['📈 Convert insight into stronger day-to-day execution.','']
+  ];
+}
+// personalizedNextSteps()
+// Maps each bottleneck to a full 3-step action sequence shown in the result page.
+function personalizedNextSteps(key){
+  const steps = {
+    zones:[
+      ['Validate your real zones','Find where easy becomes costly and hard work begins.'],
+      ['Match zones to your event','Adjust targets for duration, terrain, heat, and fitness.'],
+      ['Train from clear targets','Turn results into power, pace, or heart-rate ranges.']
+    ],
+    hydration:[
+      ['Measure your sweat rate','Find how much fluid you lose per hour.'],
+      ['Build your fluid target','Match intake to intensity, weather, and duration.'],
+      ['Plan before race day','Turn sweat data into a practical hydration plan.']
+    ],
+    sodium:[
+      ['Measure your sodium loss','Find how much salt you lose when you sweat.'],
+      ['Match sodium to your body','Adjust intake based on sweat rate and race duration.'],
+      ['Set your sodium target','Use a clear mg/hour plan instead of guessing.']
+    ],
+    pacing:[
+      ['Find your sustainable intensity','Know what pace or power you can actually hold.'],
+      ['Set event-specific limits','Adjust pacing for heat, terrain, and duration.'],
+      ['Avoid fading late','Use clear limits to prevent early overpacing.']
+    ],
+    heat:[
+      ['Find what breaks down in heat','Identify whether the issue is fluid, sodium, pacing, or cooling.'],
+      ['Build your heat plan','Combine hydration, sodium, cooling, and intensity control.'],
+      ['Prepare for hot conditions','Turn results into clear race-day targets.']
+    ]
+  };
+  return steps[key] || [
+    ['Validate the key limiter','Use targeted testing to confirm what is most likely holding you back.'],
+    ['Match strategy to event demands','Adjust for duration, terrain, and conditions.'],
+    ['Execute with clear targets','Use measurable limits and race-day rules.']
+  ];
+}
+
+function ctaForIntent(intent, primaryKey, primaryLabel, leadName){
+  const caseStudyUrls = {
+    zones:'https://www.gritlab.sg/post/case-insight-1-elite-road-cyclist-removing-junk-miles-from-18-20h-training-week',
+    pacing:'https://www.gritlab.sg/post/case-insight-1-elite-road-cyclist-removing-junk-miles-from-18-20h-training-week',
+    hydration:'https://www.gritlab.sg/post/case-study-diagnostic-extremely-salty-sweater-triathlete-losses-1-day-worth-of-sodium-in-just-1-h',
+    heat:'https://www.gritlab.sg/post/case-study-diagnostic-extremely-salty-sweater-triathlete-losses-1-day-worth-of-sodium-in-just-1-h',
+    default:'https://www.gritlab.sg/post/athlete-took-electrolytes-and-still-cramped-here-s-what-the-test-revealed'
+  };
+  const caseStudyUrl = caseStudyUrls[primaryKey] || caseStudyUrls.default;
+  const sender = (leadName || '[Name]').trim();
+  const whatsappMessage = `Hi Shawn, I completed the Bottleneck Assessment and received ${primaryLabel} as my result. What would you recommend as the best next step? ${sender}`;
+  const whatsappUrl = `https://wa.me/6598565630?text=${encodeURIComponent(whatsappMessage)}`;
+  const routes = {
+    race_assistance:{
+      heading:'Want a clearer race-day plan?',
+      text:'Message Shawn on WhatsApp to turn this result into a clear race plan.',
+      button:"I'M READY FOR CLARITY",
+      href:whatsappUrl
+    },
+    problem_soon:{
+      heading:'Want help resolving this bottleneck?',
+      text:'Message GritLab and we’ll point you toward the next best step.',
+      button:"I'M READY FOR CLARITY",
+      href:whatsappUrl
+    },
+    understand_result:{
+      heading:'Want to see how this shows up in real athletes?',
+      text:'See how this type of bottleneck shows up in real athletes.',
+      button:'Read Case Study',
+      href:caseStudyUrl
+    },
+    curious:{
+      heading:'Want to see what testing can reveal?',
+      text:'Start with a short case study showing how hidden sweat and sodium issues can affect performance.',
+      button:'Read Case Study',
+      href:caseStudyUrl
+    }
+  };
+  return routes[intent] || routes.understand_result;
+}
+// renderResults()
+// Builds the final result page dynamically from calculated scores and collected answers.
+// Edit this for interface/result-page changes. It does not itself send data to Google Sheets.
+function renderResults(){
+  saveFields();
+  const scores = calculateScores();
+  const ranked = Object.entries(scores).sort((a,b)=>a[1]-b[1]);
+  const [primaryKey, primaryScore] = ranked[0];
+  const secondaryScore = ranked[1]?.[1];
+  const secondaryGap = Number.isFinite(secondaryScore) ? Math.abs(primaryScore - secondaryScore) : 99;
+  const isTightResult = Number.isFinite(secondaryScore) && Math.abs(primaryScore - secondaryScore) <= 5;
+  const hasStrongSecondary = Number.isFinite(secondaryScore) && secondaryGap <= 20;
+  const primary = domainMeta[primaryKey];
+  const contributors = hasStrongSecondary ? ranked.slice(1,2) : [];
+  const stepPlan = personalizedNextSteps(primaryKey);
+  const benefitItems = benefitsFor(primaryKey);
+  const cta = ctaForIntent(state.data.intent, primaryKey, primary.label, state.data.leadName);
+  const primaryResultText = 'This is your most likely bottleneck currently.';
+  const resultSummaries = {
+    zones: 'Your answers suggest your training zones may not be set accurately enough for your current fitness. This can lead to undertraining, overreaching, or inconsistent progress.',
+    hydration: 'Your answers suggest your fluid intake may not be keeping up with your training or race demands. This can increase early fatigue and late-session performance decline.',
+    sodium: 'Your answers suggest your sodium intake may not be keeping up with sweat losses. This can increase the risk of cramping, early fatigue, and performance drop-off during longer or hotter sessions.',
+    pacing: 'Your answers suggest pacing may be your main limiter right now. Starting too hard or uneven effort control can drive early fatigue and reduce overall performance.',
+    heat: 'Your answers suggest heat tolerance may be a key limiter. In hot and humid conditions, this can cause faster fatigue, reduced output, and pacing breakdown.'
+  };
+  const whyLines = {
+    zones: 'Improving this can make your training more precise and your progress more reliable.',
+    hydration: 'Improving this can help you sustain effort longer and reduce fatigue-related drop-off.',
+    sodium: 'Improving this can help reduce cramping risk and support steadier performance in the heat.',
+    pacing: 'Improving this can help you distribute effort better and finish stronger.',
+    heat: 'Improving this can help you perform more consistently in hot and humid conditions.'
+  };
+  const resultSummary = resultSummaries[primaryKey]
+    || `<b>${primary.label}</b> is your most likely bottleneck currently.`;
+  const whyLine = whyLines[primaryKey]
+    || 'Improving here will likely deliver the fastest gains.';
+  const avg = Math.round(Object.values(scores).reduce((a,b)=>a+b,0)/Object.values(scores).length);
+  document.getElementById('profileMeta').textContent = `${state.data.sport || 'Athlete'}${state.data.eventType ? ' · '+state.data.eventType : ''}`;
+  document.getElementById('resultsRoot').innerHTML = `
+    <div class="result-title">
+      <h2>Your Likely Performance Limiter</h2>
+      <div class="red-line"></div>
+    </div>
+    <div class="primary-card">
+      <div class="result-badge">
+        <div class="result-badge-icon">${primary.icon}</div>
+        <div class="result-badge-label"><span>Primary Limiter</span><b>${primary.label}</b></div>
+      </div>
+      <div class="primary-copy no-title">
+        <div class="label">Primary Limiter</div>
+        <h3>${primary.label}</h3>
+        <p>${primaryResultText}</p>
+        <div class="why-line"><div class="target">🎯</div><div><b>${whyLine}</b><br>${primary.summary}</div></div>
+      </div>
+      <div class="impact-box">
+        <h4>Impact on Performance</h4>
+        ${severityBarHTML(primaryScore)}
+      </div>
+    </div>
+
+    <h3 style="margin:0 0 12px">Secondary Contributor</h3>
+    ${hasStrongSecondary ? `
+    <div class="factor-grid">
+      ${contributors.map(([k,v])=>`
+        <div class="factor-card">
+          <div class="factor-top"><div class="factor-icon">${domainMeta[k].icon}</div><h4>${domainMeta[k].label}</h4></div>
+          ${severityBarHTML(v)}
+          <p>${domainMeta[k].summary}</p>
+        </div>`).join('')}
+    </div>` : `<p class="secondary-note">No clear secondary contributor was detected from your responses.</p>`}
+
+    <div class="summary-grid">
+      <div class="result-copy">
+        <h3>Your Results Summary</h3><div class="red-line" style="margin:0 0 14px;width:42px"></div>
+        <p>${resultSummary}</p>
+        <div class="subsection-label">What this can improve</div>
+        <div class="benefits">
+          ${benefitItems.map(([title,text])=>`<div class="benefit">${title}${text ? `<span>${text}</span>` : ''}</div>`).join('')}
+        </div>
+      </div>
+      <div class="result-copy">
+        <h3>Personalized Next Steps</h3><div class="red-line" style="margin:0 0 14px;width:42px"></div>
+        <div class="steps-list">
+          ${stepPlan.map((step, idx)=>`<div class="step-item"><div class="step-icon">${idx+1}</div><div><b>${step[0]}</b><p>${step[1]}</p></div></div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="cta-bar">
+      <div><h3>${cta.heading}</h3><p>${cta.text}</p></div>
+      <a class="btn btn-primary" href="${cta.href}" target="_blank" rel="noopener">${cta.button} →</a>
+    </div>
+    <div class="footer-band">
+      <div class="footer-red">SCIENCE.<br>STRATEGY.<br>PERFORMANCE.</div>
+      <div class="sports"><div><span>🚴</span>CYCLING</div><div><span>🏃</span>RUNNING</div><div><span>🏊</span>SWIMMING</div><div><span>🏊‍♂️🚴🏃</span>TRIATHLON</div></div>
+      <div class="footer-dark">MEASURE. UNDERSTAND. PERFORM.</div>
+    </div>
+  `;
+}
+// calculateConfidence()
+// Internal reliability metric for interpreting score certainty. Not user-facing.
+function calculateConfidence(scores){
+  const scored = scores || calculateScores();
+  const ranked = Object.entries(scored).sort((a,b)=>a[1]-b[1]);
+  const primaryScore = ranked[0]?.[1];
+  const secondaryScore = ranked[1]?.[1];
+  const scoreGap = Number.isFinite(primaryScore) && Number.isFinite(secondaryScore)
+    ? Math.abs(primaryScore - secondaryScore)
+    : 99;
+
+  let confidenceScore = 100;
+  const uncertainCount = [
+    state.data.zonesLastTested === 'never',
+    state.data.controlledFade === 'unsure',
+    state.data.sodiumTrack === 'unsure',
+    state.data.heatDrop === 'unsure'
+  ].filter(Boolean).length;
+  confidenceScore -= uncertainCount * 10;
+
+  const needsFadeContext = ['sometimes','often','almost_always'].includes(state.data.controlledFade);
+  if(needsFadeContext && !(state.data.controlledFadeContext || []).length) confidenceScore -= 8;
+  if(state.data.controlledFade === 'no' && (state.data.controlledFadeContext || []).length) confidenceScore -= 10;
+
+  if(scoreGap <= 5) confidenceScore -= 15;
+  else if(scoreGap <= 10) confidenceScore -= 8;
+
+  confidenceScore = clamp(Math.round(confidenceScore));
+  const confidenceLabel = confidenceScore >= 90
+    ? 'very_high'
+    : confidenceScore >= 80
+      ? 'high'
+      : confidenceScore >= 65
+        ? 'moderate'
+        : 'low';
+
+  return {confidenceScore, confidenceLabel, scoreGap};
+}
+// buildResultObject()
+// CRITICAL: Defines the JSON object sent to Apps Script and stored in localStorage.
+// If you change this structure, update Apps Script doPost() and redeploy a new /exec version.
+function buildResultObject(){
+  const scores=calculateScores();
+  const ranked=Object.entries(scores).sort((a,b)=>a[1]-b[1]);
+  const primaryScore = ranked[0]?.[1];
+  const secondaryScore = ranked[1]?.[1];
+  const confidenceGap = Number.isFinite(primaryScore) && Number.isFinite(secondaryScore) ? Math.abs(primaryScore - secondaryScore) : 99;
+  const isTightResult = Number.isFinite(primaryScore) && Number.isFinite(secondaryScore) && confidenceGap <= 5;
+  const confidence = calculateConfidence(scores);
+  return {lead:{name:state.data.leadName,email:state.data.leadEmail,intent:state.data.intent}, profile:{sport:state.data.sport,eventType:state.data.eventType}, answers:state.data, scores, primaryBottleneck:domainMeta[ranked[0][0]].label, primaryScore:ranked[0][1], confidenceScore:confidence.confidenceScore, confidenceLabel:confidence.confidenceLabel, confidenceGap:confidenceGap, isTightResult:isTightResult, createdAt:new Date().toISOString()};
+}
+// saveLead()
+// CRITICAL: Saves a local browser backup first, then sends the same result object to Google Sheets via Apps Script.
+// Root-cause prevention: keep fetch() POST, the /exec URL, and Apps Script doPost() aligned with buildResultObject().
+function saveLead(){
+  const obj = buildResultObject();
+
+  // Save a local backup if browser storage is available. Do not block the result page if it fails.
+  try{
+    let list = [];
+    try{
+      list = JSON.parse(localStorage.getItem('gritlabAssessmentLeads')||'[]');
+      if(!Array.isArray(list)) list = [];
+    }catch(parseErr){
+      list = [];
+    }
+    list.push(obj);
+    localStorage.setItem('gritlabAssessmentLeads', JSON.stringify(list));
+  }catch(storageErr){
+    console.warn('Local backup failed. Continuing to results.', storageErr);
+  }
+
+  // Optional: also send the lead to Google Sheets via Apps Script.
+  if(SEND_TO_GOOGLE_SHEETS){
+    fetch(GOOGLE_SHEETS_WEB_APP_URL, {
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(obj)
+    }).catch(err => {
+      console.warn('Google Sheets submission failed. Local backup still saved.', err);
+    });
+  }
+}
+// downloadCurrentResult()
+// Downloads the current user's result JSON for debugging or manual backup.
+function downloadCurrentResult(){
+  const blob = new Blob([JSON.stringify(buildResultObject(),null,2)], {type:'application/json'});
+  downloadBlob(blob, `gritlab-result-${Date.now()}.json`);
+}
+// downloadCSV()
+// Exports all locally stored leads from this browser into a CSV.
+// If you add important fields, update the headers and rows here too.
+function downloadCSV(){
+  const list = JSON.parse(localStorage.getItem('gritlabAssessmentLeads')||'[]');
+  const headers = ['createdAt','name','email','sport','eventType','intent','primaryBottleneck','primaryScore','confidenceScore','confidenceLabel','scoresJson','booked','showed','bought','revenue','reasonLost'];
+  const rows = list.map(x=>[
+    x.createdAt,x.lead.name,x.lead.email,x.profile.sport,x.profile.eventType,x.lead.intent,x.primaryBottleneck,x.primaryScore,x.confidenceScore,x.confidenceLabel,JSON.stringify(x.scores),'','','','',''
+  ]);
+  const csv = [headers, ...rows].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  downloadBlob(new Blob([csv],{type:'text/csv'}), `gritlab-assessment-leads-${Date.now()}.csv`);
+}
+// downloadBlob()
+// Generic file-download helper used by JSON and CSV export buttons.
+function downloadBlob(blob, filename){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+}
+// Starts the app by showing Screen 1 and setting the progress bar.
+updateUI();
+
+</script>
+
+  <!--
+    ================================================================
+    END OF FILE
+    ================================================================
+    Final reminder:
+    After changing any questions, fields, scoring, or submitted data structure,
+    complete a full test submission and confirm that a new row appears in Google Sheets.
+  -->
+
+</body>
+</html>
+
