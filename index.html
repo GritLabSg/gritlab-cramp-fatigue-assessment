@@ -331,7 +331,6 @@
     -->
     <section class="hero">
       <h1>GritLab Cramp & Fatigue Assessment</h1>
-      <p class="subtitle">Find out whether your cramps, early fatigue, stalled progress, or pacing struggles in long hot races are linked to training zones, hydration, sodium or heat.</p>
       <div class="red-line"></div>
     </section>
 
@@ -349,10 +348,10 @@
         This area shows the current step name, progress bar, and profile summary.
         JavaScript updates this automatically inside updateUI().
       -->
-      <div class="assessment-head">
-        <div class="step-label" id="stepTitle">Welcome / Intro</div>
+      <div class="assessment-head" id="assessmentHead">
+        <div class="step-label" id="stepTitle">Symptoms</div>
         <div class="progress-wrap">
-          <div class="progress-text" id="progressText">Step 1 of 8</div>
+          <div class="progress-text" id="progressText">Step 1 of 7</div>
           <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
         </div>
         <div class="step-label" id="profileMeta"></div>
@@ -360,29 +359,7 @@
 
       <!--
         ================================================================
-        SCREEN 1: WELCOME / INTRO
-        ================================================================
-        Purpose: convince the user to start.
-        Data collected here: none.
-        Safe to edit: headline, subtitle, icon bullet text, disclaimer, button text.
-        Do not remove onclick="nextStep()" from the button, or the assessment cannot start.
-      -->
-      <section class="screen active" data-title="Welcome / Intro">
-        <div class="welcome-card card">
-          <h2>Unlock Your Best Performance</h2>
-          <div class="icon-bullets">
-            <div><span class="icon">🎯</span><span class="step-kicker">Step 1</span>Science-backed questions</div>
-            <div><span class="icon">📊</span><span class="step-kicker">Step 2</span>Personalized insights</div>
-            <div><span class="icon">↗</span><span class="step-kicker">Step 3</span>Actionable next steps</div>
-          </div>
-          <p class="hint">This is not a medical diagnosis. It is a screening tool to make the most of your training and races.</p>
-          <button class="btn-primary" onclick="nextStep()">Start Assessment →</button>
-        </div>
-      </section>
-
-      <!--
-        ================================================================
-        SCREEN 2: SYMPTOMS / PAIN POINTS
+        SCREEN 1: SYMPTOMS / PAIN POINTS
         ================================================================
         Purpose: identify the user's main problems.
         Data collected: checked symptom boxes.
@@ -393,9 +370,9 @@
         - The value="..." is what calculateScores() reads.
         - If you add a new symptom value, also add scoring rules inside calculateScores().
       -->
-      <section class="screen" data-title="Symptoms">
+      <section class="screen active" data-title="Symptoms">
         <div class="card">
-          <div class="mini-label">Step 2</div>
+          <div class="mini-label">Step 1</div>
           <h2 class="required">What are you struggling with?</h2>
           <div class="checks">
             <label class="check-row"><input type="checkbox" name="symptoms" value="cramping"> ⚡ Cramping</label>
@@ -409,7 +386,7 @@
 
       <!--
         ================================================================
-        SCREEN 3: PRIMARY SPORT + EVENT TYPE
+        SCREEN 2: PRIMARY SPORT + EVENT TYPE
         ================================================================
         Purpose: collect basic context about the athlete.
         Data collected: sport, event type, and age bracket.
@@ -422,7 +399,7 @@
       -->
       <section class="screen" data-title="Sport & Event">
         <div class="card">
-          <div class="mini-label">Step 3</div>
+          <div class="mini-label">Step 2</div>
           <h2>Tell us your sport and event.</h2>
           <div class="field"><label class="required">Primary sport</label><div class="choice-grid four" data-name="sport"><div class="pill" data-value="Cycling">🚴 Cycling</div><div class="pill" data-value="Running">🏃 Running</div><div class="pill" data-value="Triathlon">🏊‍♂️ Triathlon</div><div class="pill" data-value="Duathlon">🏃🚴 Duathlon</div></div></div>
           <div class="field"><label class="required">Event type</label><select id="eventType" disabled><option value="" disabled selected hidden>Select one</option></select></div>
@@ -432,13 +409,13 @@
 
       <!--
         ================================================================
-        SCREEN 4: TRAINING CONTEXT
+        SCREEN 3: TRAINING CONTEXT
         ================================================================
         Purpose: collect basic training load and structure context.
       -->
       <section class="screen" data-title="Training Context">
         <div class="card">
-          <div class="mini-label">Step 4</div>
+          <div class="mini-label">Step 3</div>
           <h2>Tell us about your training week.</h2>
           <div class="field"><label class="required">How many hours do you train per week?</label><select id="trainingHours"><option value="" disabled selected hidden>Select one</option><option value="1-3">1–3 hours</option><option value="4-6">4–6 hours</option><option value="7-9">7–9 hours</option><option value="10-12">10–12 hours</option><option value="13+">13+ hours</option></select></div>
           <div class="field"><label class="required">How many High Intensity Intervals do you perform per week?</label><select id="hiitSessions"><option value="" disabled selected hidden>Select one</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4+">4+</option></select></div>
@@ -448,7 +425,7 @@
 
       <!--
         ================================================================
-        SCREEN 5: TRAINING ZONES & PACING
+        SCREEN 4: TRAINING ZONES & PACING
         ================================================================
         Purpose: understand zone accuracy and pacing execution.
         Affects: Training Zones and Pacing.
@@ -461,7 +438,7 @@
       <section class="screen" data-title="Training Zones & Pacing">
         <div class="screen-grid">
           <div class="card">
-            <div class="mini-label">Step 5</div>
+            <div class="mini-label">Step 4</div>
             <h3>Intensity Zones</h3>
             <div class="field"><label class="required">How were your intensity zones set?</label><select id="zones"><option value="" disabled selected hidden>Select one</option><option value="lab">Lab test</option><option value="twenty_min">20-minute test</option><option value="hr_only">Heart Rate only</option><option value="zwift_ramp">Zwift Ramp Test</option><option value="rpe_only">I go by feel only</option><option value="garmin_ftp">Garmin FTP Estimate</option><option value="no_zones">I train without zones</option></select></div>
             <div class="field"><label class="required">When were they last tested or updated?</label><select id="zonesLastTested"><option value="" disabled selected hidden>Select one</option><option value="lt3">Less than 3 months ago</option><option value="lt6">Less than 6 months ago</option><option value="6-12">6–12 months ago</option><option value="1-2">1–2 years ago</option><option value="never">Never / not sure</option></select></div>
@@ -476,7 +453,7 @@
 
       <!--
         ================================================================
-        SCREEN 6: HYDRATION, SODIUM & HEAT
+        SCREEN 5: HYDRATION, SODIUM & HEAT
         ================================================================
         Purpose: understand fluid, sodium, and heat strategy.
         Affects: Hydration, Sodium Intake, and Heat Tolerance.
@@ -489,7 +466,7 @@
       <section class="screen" data-title="Hydration, Sodium & Heat">
         <div class="screen-grid">
           <div class="card">
-            <div class="mini-label">Step 6</div>
+            <div class="mini-label">Step 5</div>
             <h2>Let’s talk hydration, sodium, and heat.</h2>
             <div class="field"><label class="required">Do you cramp more in the heat or during race?</label><select id="crampHeatLong"><option value="" disabled selected hidden>Select one</option><option value="no">No</option><option value="yes">Yes</option></select></div>
             <div class="field"><label class="required">Does your pace or power drop noticeably in hot/humid conditions?</label><select id="heatDrop"><option value="" disabled selected hidden>Select one</option><option value="yes">Yes</option><option value="sometimes">Sometimes</option><option value="no">No</option><option value="unsure">Not sure</option></select></div>
@@ -505,7 +482,7 @@
 
       <!--
         ================================================================
-        SCREEN 7: LEAD CAPTURE
+        SCREEN 6: LEAD CAPTURE
         ================================================================
         Purpose: collect contact details before showing the result.
         Data collected: name, email, intent, notes.
@@ -522,7 +499,7 @@
       <section class="screen" data-title="Lead Capture">
         <div class="screen-grid">
           <div class="card">
-            <div class="mini-label">Step 7</div>
+            <div class="mini-label">Step 6</div>
             <h2>Enter your details to unlock your result and receive follow-up guidance from GritLab.</h2>
             <div class="field"><label class="required">Name</label><input id="leadName" placeholder="Full name" /></div>
             <div class="field"><label class="required">Email</label><input id="leadEmail" type="email" placeholder="name@email.com" /></div>
@@ -537,7 +514,7 @@
 
       <!--
         ================================================================
-        SCREEN 8: RESULTS PREVIEW
+        SCREEN 7: RESULTS PREVIEW
         ================================================================
         Purpose: display the final bottleneck result.
 
@@ -712,10 +689,11 @@ function updateControlledFadeFollowup(){
 function updateUI(){
   screens.forEach((s,i)=>s.classList.toggle('active',i===state.current));
   document.querySelector('.hero').style.display = state.current===0 ? 'block':'none';
+  document.getElementById('assessmentHead').style.display = '';
   document.getElementById('stepTitle').textContent = screens[state.current].dataset.title;
   document.getElementById('progressText').textContent = `Step ${state.current+1} of ${total}`;
   document.getElementById('progressFill').style.width = `${(state.current)/(total-1)*100}%`;
-  document.querySelector('.nav').style.display = state.current===0 ? 'none':'flex';
+  document.querySelector('.nav').style.display = 'flex';
   document.getElementById('backBtn').style.visibility = state.current===0 ? 'hidden':'visible';
   const next = document.getElementById('nextBtn');
   next.textContent = state.current === total-2 ? 'See Results →' : state.current === total-1 ? 'Restart ↻' : 'Next →';
@@ -770,12 +748,12 @@ function saveFields(){
 // Add new required fields here only when necessary; too much validation reduces completion rate.
 function validateStep(){
   saveFields();
-  if(state.current===1 && !state.data.symptoms.length){showError('Select at least one symptom.'); return false;}
-  if(state.current===2 && (!state.data.sport || !state.data.eventType || !state.data.ageBracket)){showError('Select a primary sport, event type, and age group.'); return false;}
-  if(state.current===3 && (!state.data.trainingHours || !state.data.hiitSessions || !state.data.structuredProgram)){showError('Complete all training week fields.'); return false;}
-  if(state.current===4 && (!state.data.zones || !state.data.zonesLastTested || !state.data.controlledFade)){showError('Complete intensity zones and pacing fields.'); return false;}
-  if(state.current===4 && ['sometimes','often','almost_always'].includes(state.data.controlledFade) && !state.data.controlledFadeContext.length){showError('Select when steady-effort fatigue usually happens.'); return false;}
-  if(state.current===5 && (!state.data.crampHeatLong || !state.data.heatDrop || !state.data.fluid || !state.data.sodiumTrack || !state.data.saltStains)){showError('Complete heat, fluid, sodium, and salt-mark fields.'); return false;}
+  if(state.current===0 && !state.data.symptoms.length){showError('Select at least one symptom.'); return false;}
+  if(state.current===1 && (!state.data.sport || !state.data.eventType || !state.data.ageBracket)){showError('Select a primary sport, event type, and age group.'); return false;}
+  if(state.current===2 && (!state.data.trainingHours || !state.data.hiitSessions || !state.data.structuredProgram)){showError('Complete all training week fields.'); return false;}
+  if(state.current===3 && (!state.data.zones || !state.data.zonesLastTested || !state.data.controlledFade)){showError('Complete intensity zones and pacing fields.'); return false;}
+  if(state.current===3 && ['sometimes','often','almost_always'].includes(state.data.controlledFade) && !state.data.controlledFadeContext.length){showError('Select when steady-effort fatigue usually happens.'); return false;}
+  if(state.current===4 && (!state.data.crampHeatLong || !state.data.heatDrop || !state.data.fluid || !state.data.sodiumTrack || !state.data.saltStains)){showError('Complete heat, fluid, sodium, and salt-mark fields.'); return false;}
   if(state.current===total-2 && (!state.data.leadName || !isValidEmail(state.data.leadEmail) || !state.data.intent)){ showError('Enter your name, a valid email, and how we should guide you.'); return false; }
   return true;
 }
