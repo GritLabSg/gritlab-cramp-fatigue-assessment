@@ -735,7 +735,7 @@ function updateUI(){
   document.getElementById('stepTitle').textContent = screens[state.current].dataset.title;
   document.getElementById('progressText').textContent = `Step ${state.current+1} of ${total}`;
   document.getElementById('progressFill').style.width = `${(state.current)/(total-1)*100}%`;
-  document.querySelector('.nav').style.display = 'flex';
+  document.querySelector('.nav').style.display = state.current===total-1 ? 'none':'flex';
   document.getElementById('backBtn').style.visibility = state.current===0 ? 'hidden':'visible';
   const next = document.getElementById('nextBtn');
   next.textContent = state.current === total-2 ? 'See Results →' : state.current === total-1 ? 'Restart ↻' : 'Next →';
@@ -891,7 +891,10 @@ function severityMeta(score){
 
 function severityBarHTML(score){
   const severity = severityMeta(score);
-  const marker = clamp(severity.impact);
+  let marker = clamp(severity.impact);
+  if(severity.label !== 'Low Priority'){
+    marker = clamp(marker + 15);
+  }
   return `
     <div class="severity" aria-label="Priority ${severity.label}">
       <div class="severity-head">
