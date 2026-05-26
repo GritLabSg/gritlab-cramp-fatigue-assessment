@@ -234,6 +234,7 @@
     .btn-ghost{background:#fff;color:#222;border:1px solid #d7d7dc}
     .btn-ghost:hover{border-color:var(--red);color:var(--red)}
     .btn-small{padding:10px 14px;font-size:13px;border-radius:11px}
+    .wa-icon{font-size:16px;line-height:1}
 
     .welcome-card{max-width:720px;margin:0 auto;text-align:center;padding:42px 28px}
     .icon-bullets{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0}
@@ -736,8 +737,11 @@ function updateUI(){
   document.getElementById('progressText').textContent = `Step ${state.current+1} of ${total}`;
   document.getElementById('progressFill').style.width = `${(state.current)/(total-1)*100}%`;
   document.querySelector('.nav').style.display = state.current===total-1 ? 'none':'flex';
-  document.getElementById('backBtn').style.visibility = state.current===0 ? 'hidden':'visible';
+  const backBtn = document.getElementById('backBtn');
+  backBtn.style.display = 'inline-flex';
+  backBtn.style.visibility = state.current===0 ? 'hidden':'visible';
   const next = document.getElementById('nextBtn');
+  next.style.display = 'inline-flex';
   next.textContent = state.current === total-2 ? 'See Results →' : state.current === total-1 ? 'Restart ↻' : 'Next →';
   document.getElementById('errorMsg').classList.remove('show');
   if(state.current===total-1) renderResults();
@@ -993,25 +997,29 @@ function ctaForIntent(intent, primaryKey, primaryLabel, leadName){
       heading:'Want a clearer race-day plan?',
       text:'Message Shawn on WhatsApp to turn this result into a clear race plan.',
       button:"I'M READY FOR CLARITY",
-      href:whatsappUrl
+      href:whatsappUrl,
+      channel:'whatsapp'
     },
     problem_soon:{
       heading:'Want help resolving this bottleneck?',
       text:'Message GritLab and we’ll point you toward the next best step.',
       button:"I'M READY FOR CLARITY",
-      href:whatsappUrl
+      href:whatsappUrl,
+      channel:'whatsapp'
     },
     understand_result:{
       heading:'Want to see how this shows up in real athletes?',
       text:'See how this type of bottleneck shows up in real athletes.',
       button:'Read Case Study',
-      href:caseStudyUrl
+      href:caseStudyUrl,
+      channel:'article'
     },
     curious:{
       heading:'Want to see what testing can reveal?',
       text:'Start with a short case study showing how hidden sweat and sodium issues can affect performance.',
       button:'Read Case Study',
-      href:caseStudyUrl
+      href:caseStudyUrl,
+      channel:'article'
     }
   };
   return routes[intent] || routes.understand_result;
@@ -1021,6 +1029,12 @@ function ctaForIntent(intent, primaryKey, primaryLabel, leadName){
 // Edit this for interface/result-page changes. It does not itself send data to Google Sheets.
 function renderResults(){
   saveFields();
+  const nav = document.getElementById('nav');
+  if(nav) nav.style.display = 'none';
+  const backBtn = document.getElementById('backBtn');
+  if(backBtn) backBtn.style.display = 'none';
+  const nextBtn = document.getElementById('nextBtn');
+  if(nextBtn) nextBtn.style.display = 'none';
   const scores = calculateScores();
   const ranked = Object.entries(scores).sort((a,b)=>a[1]-b[1]);
   const [primaryKey, primaryScore] = ranked[0];
@@ -1106,7 +1120,7 @@ function renderResults(){
 
     <div class="cta-bar">
       <div><h3>${cta.heading}</h3><p>${cta.text}</p></div>
-      <a class="btn btn-primary" href="${cta.href}" target="_blank" rel="noopener">${cta.button} →</a>
+      <a class="btn btn-primary" href="${cta.href}" target="_blank" rel="noopener">${cta.button}${cta.channel==='whatsapp' ? ' <span class="wa-icon" aria-hidden="true">💬</span>' : ''} →</a>
     </div>
     <div class="footer-band">
       <div class="sports"><div><span>🚴</span>CYCLING</div><div><span>🏃</span>RUNNING</div><div><span>🏊</span>SWIMMING</div><div><span>🏊‍♂️🚴🏃</span>TRIATHLON</div></div>
