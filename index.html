@@ -284,7 +284,7 @@
     .steps-list{display:grid;gap:0}.step-item{display:grid;grid-template-columns:48px 1fr;gap:14px;align-items:start;padding:16px 0;border-bottom:1px solid var(--line)}.step-item:first-child{padding-top:4px}.step-item:last-child{border-bottom:0;padding-bottom:0}.step-icon{width:46px;height:46px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;font-size:22px;color:var(--red);background:#fff}.step-item b{display:block;margin-bottom:6px}.step-item p{margin:0;color:#4b5563;line-height:1.55}
     .cta-bar{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:18px;padding:24px 26px;margin-top:36px;box-shadow:0 12px 28px rgba(15,23,42,.06)}.cta-bar h3{margin:0;font-size:26px}.cta-bar p{margin:6px 0 0;color:#4b5563;max-width:650px;line-height:1.45}
     .disclaimer{font-size:13px;color:#6b7280;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fafafa;margin-top:18px}
-    .footer-band{display:grid;grid-template-columns:280px 1fr 360px;margin-top:20px;overflow:hidden;border-radius:0 0 20px 20px;background:#111827;color:#fff}.footer-red{background:var(--red);padding:24px 28px;font-weight:900;letter-spacing:.16em;line-height:1.45}.sports{display:flex;align-items:center;justify-content:center;gap:28px;background:#fff;color:#111827;font-size:12px;font-weight:800}.sports div{text-align:center}.sports span{display:block;font-size:26px;margin-bottom:4px}.footer-dark{display:grid;place-items:center;font-weight:900;letter-spacing:.18em;background:repeating-linear-gradient(160deg, rgba(255,255,255,.06) 0 1px, transparent 1px 12px),#111827}
+    .footer-band{display:grid;grid-template-columns:1fr 360px;margin-top:20px;overflow:hidden;border-radius:0 0 20px 20px;background:#111827;color:#fff}.sports{display:flex;align-items:center;justify-content:center;gap:28px;background:#fff;color:#111827;font-size:12px;font-weight:800}.sports div{text-align:center}.sports span{display:block;font-size:26px;margin-bottom:4px}.footer-dark{display:grid;place-items:center;font-weight:900;letter-spacing:.18em;background:repeating-linear-gradient(160deg, rgba(255,255,255,.06) 0 1px, transparent 1px 12px),#111827}
     .tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 
     @media(max-width:900px){
@@ -412,7 +412,7 @@
         SCREEN 3: PRIMARY SPORT + EVENT TYPE
         ================================================================
         Purpose: collect basic context about the athlete.
-        Data collected: sport and event type.
+        Data collected: sport, event type, and age bracket.
 
         Non-coder editing notes:
         - Visible text can be changed safely.
@@ -426,6 +426,7 @@
           <h2>Tell us your sport and event.</h2>
           <div class="field"><label class="required">Primary sport</label><div class="choice-grid four" data-name="sport"><div class="pill" data-value="Cycling">🚴 Cycling</div><div class="pill" data-value="Running">🏃 Running</div><div class="pill" data-value="Triathlon">🏊‍♂️ Triathlon</div><div class="pill" data-value="Duathlon">🏃🚴 Duathlon</div></div></div>
           <div class="field"><label class="required">Event type</label><select id="eventType" disabled><option value="" disabled selected hidden>Select one</option></select></div>
+          <div class="field"><label class="required">Age bracket</label><select id="ageBracket"><option value="" disabled selected hidden>Select one</option><option value="under_18">Less than 18</option><option value="18-24">18–24</option><option value="25-29">25–29</option><option value="30-39">30–39</option><option value="40-49">40–49</option><option value="50-59">50–59</option><option value="60+">60+</option></select></div>
         </div>
       </section>
 
@@ -756,7 +757,7 @@ function selectedControlledFadeContext(){
 // If you add a new question or input field, add it here or it will not be saved, scored, exported, or sent to Google Sheets.
 function saveFields(){
   Object.assign(state.data, {
-    eventType:getVal('eventType'),
+    eventType:getVal('eventType'), ageBracket:getVal('ageBracket'),
     trainingHours:getVal('trainingHours'), hiitSessions:getVal('hiitSessions'), structuredProgram:getVal('structuredProgram'),
     zones:getVal('zones'), zonesLastTested:getVal('zonesLastTested'), controlledFade:getVal('controlledFade'), controlledFadeContext:selectedControlledFadeContext(),
     fluid:getVal('fluid'), sodiumTrack:getVal('sodiumTrack'), saltStains:getVal('saltStains'), crampHeatLong:getVal('crampHeatLong'), heatDrop:getVal('heatDrop'),
@@ -770,7 +771,7 @@ function saveFields(){
 function validateStep(){
   saveFields();
   if(state.current===1 && !state.data.symptoms.length){showError('Select at least one symptom.'); return false;}
-  if(state.current===2 && (!state.data.sport || !state.data.eventType)){showError('Select a primary sport and event type.'); return false;}
+  if(state.current===2 && (!state.data.sport || !state.data.eventType || !state.data.ageBracket)){showError('Select a primary sport, event type, and age bracket.'); return false;}
   if(state.current===3 && (!state.data.trainingHours || !state.data.hiitSessions || !state.data.structuredProgram)){showError('Complete all training week fields.'); return false;}
   if(state.current===4 && (!state.data.zones || !state.data.zonesLastTested || !state.data.controlledFade)){showError('Complete intensity zones and pacing fields.'); return false;}
   if(state.current===4 && ['sometimes','often','almost_always'].includes(state.data.controlledFade) && !state.data.controlledFadeContext.length){showError('Select when steady-effort fatigue usually happens.'); return false;}
@@ -860,22 +861,22 @@ function calculateScores(){
   return s;
 }
 
-// Converts the internal score into a simple visual severity: lower score = higher concern.
+// Converts the internal score into a simple visual priority: lower score = higher concern.
 function severityMeta(score){
-  if(score < 45) return {label:'Severe', impact:100 - score};
-  if(score < 65) return {label:'High', impact:100 - score};
-  if(score < 82) return {label:'Moderate', impact:100 - score};
-  return {label:'Low', impact:100 - score};
+  if(score < 45) return {label:'Very High Priority', impact:100 - score};
+  if(score < 65) return {label:'High Priority', impact:100 - score};
+  if(score < 82) return {label:'Moderate Priority', impact:100 - score};
+  return {label:'Low Priority', impact:100 - score};
 }
 
 function severityBarHTML(score){
   const severity = severityMeta(score);
   const marker = clamp(severity.impact);
   return `
-    <div class="severity" aria-label="Severity ${severity.label}">
+    <div class="severity" aria-label="Priority ${severity.label}">
       <div class="severity-head">
         <span class="severity-label">${severity.label}</span>
-        <span class="severity-score">Severity</span>
+        <span class="severity-score">Priority</span>
       </div>
       <div class="severity-track"><span class="severity-marker" style="left:${marker}%"></span></div>
     </div>`;
@@ -1047,7 +1048,7 @@ function renderResults(){
         <div class="why-line"><div class="target">🎯</div><div><b>${whyLine}</b><br>${primary.summary}</div></div>
       </div>
       <div class="impact-box">
-        <h4>Impact on Performance</h4>
+        <h4>Recommended Focus</h4>
         ${severityBarHTML(primaryScore)}
       </div>
     </div>
@@ -1085,7 +1086,6 @@ function renderResults(){
       <a class="btn btn-primary" href="${cta.href}" target="_blank" rel="noopener">${cta.button} →</a>
     </div>
     <div class="footer-band">
-      <div class="footer-red">SCIENCE.<br>STRATEGY.<br>PERFORMANCE.</div>
       <div class="sports"><div><span>🚴</span>CYCLING</div><div><span>🏃</span>RUNNING</div><div><span>🏊</span>SWIMMING</div><div><span>🏊‍♂️🚴🏃</span>TRIATHLON</div></div>
       <div class="footer-dark">MEASURE. UNDERSTAND. PERFORM.</div>
     </div>
@@ -1140,7 +1140,7 @@ function buildResultObject(){
   const confidenceGap = Number.isFinite(primaryScore) && Number.isFinite(secondaryScore) ? Math.abs(primaryScore - secondaryScore) : 99;
   const isTightResult = Number.isFinite(primaryScore) && Number.isFinite(secondaryScore) && confidenceGap <= 5;
   const confidence = calculateConfidence(scores);
-  return {lead:{name:state.data.leadName,email:state.data.leadEmail,intent:state.data.intent}, profile:{sport:state.data.sport,eventType:state.data.eventType}, answers:state.data, scores, primaryBottleneck:domainMeta[ranked[0][0]].label, primaryScore:ranked[0][1], confidenceScore:confidence.confidenceScore, confidenceLabel:confidence.confidenceLabel, confidenceGap:confidenceGap, isTightResult:isTightResult, createdAt:new Date().toISOString()};
+  return {lead:{name:state.data.leadName,email:state.data.leadEmail,intent:state.data.intent}, profile:{sport:state.data.sport,eventType:state.data.eventType,ageBracket:state.data.ageBracket}, answers:state.data, scores, primaryBottleneck:domainMeta[ranked[0][0]].label, primaryScore:ranked[0][1], confidenceScore:confidence.confidenceScore, confidenceLabel:confidence.confidenceLabel, confidenceGap:confidenceGap, isTightResult:isTightResult, createdAt:new Date().toISOString()};
 }
 // saveLead()
 // CRITICAL: Saves a local browser backup first, then sends the same result object to Google Sheets via Apps Script.
@@ -1186,9 +1186,9 @@ function downloadCurrentResult(){
 // If you add important fields, update the headers and rows here too.
 function downloadCSV(){
   const list = JSON.parse(localStorage.getItem('gritlabAssessmentLeads')||'[]');
-  const headers = ['createdAt','name','email','sport','eventType','intent','primaryBottleneck','primaryScore','confidenceScore','confidenceLabel','scoresJson','booked','showed','bought','revenue','reasonLost'];
+  const headers = ['createdAt','name','email','sport','eventType','ageBracket','intent','primaryBottleneck','primaryScore','confidenceScore','confidenceLabel','scoresJson','booked','showed','bought','revenue','reasonLost'];
   const rows = list.map(x=>[
-    x.createdAt,x.lead.name,x.lead.email,x.profile.sport,x.profile.eventType,x.lead.intent,x.primaryBottleneck,x.primaryScore,x.confidenceScore,x.confidenceLabel,JSON.stringify(x.scores),'','','','',''
+    x.createdAt,x.lead.name,x.lead.email,x.profile.sport,x.profile.eventType,x.profile.ageBracket,x.lead.intent,x.primaryBottleneck,x.primaryScore,x.confidenceScore,x.confidenceLabel,JSON.stringify(x.scores),'','','','',''
   ]);
   const csv = [headers, ...rows].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
   downloadBlob(new Blob([csv],{type:'text/csv'}), `gritlab-assessment-leads-${Date.now()}.csv`);
