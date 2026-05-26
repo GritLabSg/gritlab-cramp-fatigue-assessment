@@ -426,7 +426,7 @@
           <h2>Tell us your sport and event.</h2>
           <div class="field"><label class="required">Primary sport</label><div class="choice-grid four" data-name="sport"><div class="pill" data-value="Cycling">🚴 Cycling</div><div class="pill" data-value="Running">🏃 Running</div><div class="pill" data-value="Triathlon">🏊‍♂️ Triathlon</div><div class="pill" data-value="Duathlon">🏃🚴 Duathlon</div></div></div>
           <div class="field"><label class="required">Event type</label><select id="eventType" disabled><option value="" disabled selected hidden>Select one</option></select></div>
-          <div class="field"><label class="required">Age bracket</label><select id="ageBracket"><option value="" disabled selected hidden>Select one</option><option value="under_18">Less than 18</option><option value="18-24">18–24</option><option value="25-29">25–29</option><option value="30-39">30–39</option><option value="40-49">40–49</option><option value="50-59">50–59</option><option value="60+">60+</option></select></div>
+          <div class="field"><label class="required">What is your age group?</label><select id="ageBracket"><option value="" disabled selected hidden>Select one</option><option value="under_18">Less than 18</option><option value="18-24">18–24</option><option value="25-29">25–29</option><option value="30-39">30–39</option><option value="40-49">40–49</option><option value="50-59">50–59</option><option value="60+">60+</option></select></div>
         </div>
       </section>
 
@@ -771,7 +771,7 @@ function saveFields(){
 function validateStep(){
   saveFields();
   if(state.current===1 && !state.data.symptoms.length){showError('Select at least one symptom.'); return false;}
-  if(state.current===2 && (!state.data.sport || !state.data.eventType || !state.data.ageBracket)){showError('Select a primary sport, event type, and age bracket.'); return false;}
+  if(state.current===2 && (!state.data.sport || !state.data.eventType || !state.data.ageBracket)){showError('Select a primary sport, event type, and age group.'); return false;}
   if(state.current===3 && (!state.data.trainingHours || !state.data.hiitSessions || !state.data.structuredProgram)){showError('Complete all training week fields.'); return false;}
   if(state.current===4 && (!state.data.zones || !state.data.zonesLastTested || !state.data.controlledFade)){showError('Complete intensity zones and pacing fields.'); return false;}
   if(state.current===4 && ['sometimes','often','almost_always'].includes(state.data.controlledFade) && !state.data.controlledFadeContext.length){showError('Select when steady-effort fatigue usually happens.'); return false;}
@@ -1186,7 +1186,7 @@ function downloadCurrentResult(){
 // If you add important fields, update the headers and rows here too.
 function downloadCSV(){
   const list = JSON.parse(localStorage.getItem('gritlabAssessmentLeads')||'[]');
-  const headers = ['createdAt','name','email','sport','eventType','ageBracket','intent','primaryBottleneck','primaryScore','confidenceScore','confidenceLabel','scoresJson','booked','showed','bought','revenue','reasonLost'];
+  const headers = ['createdAt','name','email','sport','eventType','ageGroup','intent','primaryBottleneck','primaryScore','confidenceScore','confidenceLabel','scoresJson','booked','showed','bought','revenue','reasonLost'];
   const rows = list.map(x=>[
     x.createdAt,x.lead.name,x.lead.email,x.profile.sport,x.profile.eventType,x.profile.ageBracket,x.lead.intent,x.primaryBottleneck,x.primaryScore,x.confidenceScore,x.confidenceLabel,JSON.stringify(x.scores),'','','','',''
   ]);
