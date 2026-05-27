@@ -1079,6 +1079,7 @@ function renderResults(){
   const cta = ctaForIntent(state.data.intent, primaryKey, primary.label, state.data.leadName);
   const caseInsight = caseInsightFor(primaryKey);
   const showCaseInsight = ['understand_result','curious'].includes(state.data.intent);
+  const showFinalCta = !showCaseInsight;
   const primaryResultText = 'This is your most likely bottleneck currently.';
   const resultSummaries = {
     zones: 'Your answers suggest your training zones may not be set accurately enough for your current fitness. This can lead to undertraining, overreaching, or inconsistent progress.',
@@ -1158,10 +1159,11 @@ function renderResults(){
       <a href="${caseInsight.href}" target="_blank" rel="noopener">Read the full case study →</a>
     </div>` : ''}
 
+    ${showFinalCta ? `
     <div class="cta-bar">
       <div><h3>${cta.heading}</h3><p>${cta.text}</p></div>
       <a class="btn btn-primary" href="${cta.href}" target="_blank" rel="noopener">${cta.button} →${cta.channel==='whatsapp' ? ` ${whatsappIcon}` : ''}</a>
-    </div>
+    </div>` : ''}
     <div class="footer-band">
       <div class="sports"><div><span>🚴</span>CYCLING</div><div><span>🏃</span>RUNNING</div><div><span>🏊</span>SWIMMING</div><div><span>🏊‍♂️🚴🏃</span>TRIATHLON</div></div>
       <div class="footer-dark">MEASURE. UNDERSTAND. PERFORM.</div>
