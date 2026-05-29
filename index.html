@@ -555,10 +555,11 @@
             <h2>Enter your details to unlock your result and receive follow-up guidance from GritLab.</h2>
             <div class="field"><label class="required">Name</label><input id="leadName" placeholder="Full name" /></div>
             <div class="field"><label class="required">Email</label><input id="leadEmail" type="email" placeholder="name@email.com" /></div>
+            <div class="field"><label>WhatsApp number, if you’d like faster support</label><input id="leadPhone" placeholder="e.g. +65 9856 5630" /></div>
           </div>
           <div class="card">
             <h3>Your next step</h3>
-            <div class="field"><label class="required">What would help you turn this result into clearer next steps?</label><select id="intent"><option value="" disabled selected hidden>Select</option><option value="race_assistance">📅 I have a race coming up and want a clear plan</option><option value="problem_soon">🎯 I want to resolve this problem soon</option><option value="understand_result">🧠 I want to understand what this result means first</option><option value="curious">👀 I’m just exploring for now</option></select></div>
+            <div class="field"><label class="required">What would you like to do next?</label><select id="intent"><option value="" disabled selected hidden>Select</option><option value="race_assistance">📅 I have a race coming up and want a clear plan</option><option value="problem_soon">🎯 I want to resolve this problem soon</option><option value="understand_result">🧠 I want to understand what this result means first</option><option value="curious">👀 I’m just exploring for now</option></select></div>
             <div class="field"><label>Notes / context</label><textarea id="notes" rows="4" placeholder="Race coming up, recurring cramp issue, plateau, etc."></textarea></div>
           </div>
         </div>
@@ -795,7 +796,7 @@ function saveFields(){
     trainingHours:getVal('trainingHours'), hiitSessions:getVal('hiitSessions'), structuredProgram:getVal('structuredProgram'),
     zones:getVal('zones'), zonesLastTested:getVal('zonesLastTested'), controlledFade:getVal('controlledFade'), controlledFadeContext:selectedControlledFadeContext(),
     fluid:getVal('fluid'), sodiumTrack:getVal('sodiumTrack'), saltStains:getVal('saltStains'), crampHeatLong:getVal('crampHeatLong'), heatDrop:getVal('heatDrop'),
-    leadName:getVal('leadName'), leadEmail:getVal('leadEmail'), intent:getVal('intent'), notes:getVal('notes'),
+    leadName:getVal('leadName'), leadEmail:getVal('leadEmail'), leadPhone:getVal('leadPhone'), intent:getVal('intent'), notes:getVal('notes'),
     symptoms:selectedSymptoms(), createdAt:new Date().toISOString()
   });
 }
@@ -1272,7 +1273,7 @@ function buildResultObject(){
   const confidenceGap = Number.isFinite(primaryScore) && Number.isFinite(secondaryScore) ? Math.abs(primaryScore - secondaryScore) : 99;
   const isTightResult = Number.isFinite(primaryScore) && Number.isFinite(secondaryScore) && confidenceGap <= 5;
   const confidence = calculateConfidence(scores);
-  return {lead:{name:state.data.leadName,email:state.data.leadEmail,intent:state.data.intent}, profile:{sport:state.data.sport,eventType:state.data.eventType,ageBracket:state.data.ageBracket}, answers:state.data, scores, primaryBottleneck:domainMeta[ranked[0][0]].label, primaryScore:ranked[0][1], confidenceScore:confidence.confidenceScore, confidenceLabel:confidence.confidenceLabel, confidenceGap:confidenceGap, isTightResult:isTightResult, createdAt:new Date().toISOString()};
+  return {lead:{name:state.data.leadName,email:state.data.leadEmail,phone:state.data.leadPhone,intent:state.data.intent}, profile:{sport:state.data.sport,eventType:state.data.eventType,ageBracket:state.data.ageBracket}, answers:state.data, scores, primaryBottleneck:domainMeta[ranked[0][0]].label, primaryScore:ranked[0][1], confidenceScore:confidence.confidenceScore, confidenceLabel:confidence.confidenceLabel, confidenceGap:confidenceGap, isTightResult:isTightResult, createdAt:new Date().toISOString()};
 }
 // saveLead()
 // CRITICAL: Saves a local browser backup first, then sends the same result object to Google Sheets via Apps Script.
@@ -1342,9 +1343,9 @@ function downloadCurrentResult(){
 // If you add important fields, update the headers and rows here too.
 function downloadCSV(){
   const list = JSON.parse(localStorage.getItem('gritlabAssessmentLeads')||'[]');
-  const headers = ['createdAt','name','email','sport','eventType','ageGroup','intent','primaryBottleneck','primaryScore','confidenceScore','confidenceLabel','scoresJson','booked','showed','bought','revenue','reasonLost'];
+  const headers = ['createdAt','name','email','phone','sport','eventType','ageGroup','intent','primaryBottleneck','primaryScore','confidenceScore','confidenceLabel','scoresJson','booked','showed','bought','revenue','reasonLost'];
   const rows = list.map(x=>[
-    x.createdAt,x.lead.name,x.lead.email,x.profile.sport,x.profile.eventType,x.profile.ageBracket,x.lead.intent,x.primaryBottleneck,x.primaryScore,x.confidenceScore,x.confidenceLabel,JSON.stringify(x.scores),'','','','',''
+    x.createdAt,x.lead.name,x.lead.email,x.lead.phone,x.profile.sport,x.profile.eventType,x.profile.ageBracket,x.lead.intent,x.primaryBottleneck,x.primaryScore,x.confidenceScore,x.confidenceLabel,JSON.stringify(x.scores),'','','','',''
   ]);
   const csv = [headers, ...rows].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
   downloadBlob(new Blob([csv],{type:'text/csv'}), `gritlab-assessment-leads-${Date.now()}.csv`);
